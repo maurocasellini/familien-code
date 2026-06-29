@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#F4E4D9"/>
+      <stop offset="100%" stop-color="#C4849E"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E2B848"/>
+      <stop offset="100%" stop-color="#9A6F22"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect x="80" y="80" width="864" height="864" rx="200" ry="200" fill="url(#bg)"/>
+  <!-- Six-pointed star (sacred geometry) -->
+  <g transform="translate(512 512)">
+    <polygon points="0,-260 75,-130 225,-130 130,-50 165,90 0,10 -165,90 -130,-50 -225,-130 -75,-130"
+             fill="url(#gold)" stroke="#8B4060" stroke-width="6" opacity="0.92"/>
+    <!-- Inner circle -->
+    <circle cx="0" cy="-20" r="80" fill="#FFF8F0" opacity="0.85"/>
+    <!-- Stylized 11 inside (Master Number) -->
+    <text x="0" y="20" font-family="Georgia, serif" font-style="italic" font-size="120"
+          font-weight="400" fill="#8B4060" text-anchor="middle">∞</text>
+  </g>
+  <!-- Outer ornament -->
+  <circle cx="512" cy="512" r="380" fill="none" stroke="#8B4060" stroke-width="3" opacity="0.25"/>
+  <circle cx="512" cy="512" r="395" fill="none" stroke="#E2B848" stroke-width="1" opacity="0.5"/>
+</svg>
