@@ -126,7 +126,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: baseHeaders,
         body: JSON.stringify({
-          model: 'claude-opus-4-5',
+          model: 'claude-opus-4-8',
           max_tokens: maxTokens,
           system: systemFull,
           messages: roundMessages,
