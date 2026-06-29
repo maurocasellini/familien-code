@@ -6,49 +6,48 @@
 //  je 13 Aktivierungen (Sonne, Erde, Mond, Knoten, Merkur..Pluto), die im
 //  reinen Rechner-Kern (lib/humandesign.js) auf das Tor-Rad gemappt werden.
 //
-//  Ephemeride: Moshier (SEFLG_MOSEPH) — keine Ephemeriden-Dateien noetig,
-//  laeuft also identisch lokal und auf Vercel, bogensekunden-genau.
-//  Zeitzone: tz-lookup + luxon (historisch korrekte Sommerzeit), exakt wie
-//  die bestehende Profi-Astrologie.
+//  Ephemeride: swisseph-wasm im Moshier-Modus (SEFLG_MOSEPH) ueber lib/ephemeris.js.
+//  Kein natives Modul, laeuft also identisch lokal und auf Vercel, bogensekunden-
+//  genau (validiert gegen das fruehere native swisseph). Wahrer Knoten (SE_TRUE_NODE).
+//  Zeitzone: tz-lookup + luxon (historisch korrekte Sommerzeit).
 // ───────────────────────────────────────────────────────────────────────────
-import swe from 'swisseph';
 import tzlookup from 'tz-lookup';
 import { DateTime } from 'luxon';
 import { buildChart, norm360 } from '../../lib/humandesign';
+import { getEphemeris, SE, MOSEPH_SPEED } from '../../lib/ephemeris';
 
 export const config = { maxDuration: 30 };
 
-const FLAG = swe.SEFLG_MOSEPH | swe.SEFLG_SPEED;
 const BODIES = {
-  sun: swe.SE_SUN, moon: swe.SE_MOON, mercury: swe.SE_MERCURY, venus: swe.SE_VENUS,
-  mars: swe.SE_MARS, jupiter: swe.SE_JUPITER, saturn: swe.SE_SATURN,
-  uranus: swe.SE_URANUS, neptune: swe.SE_NEPTUNE, pluto: swe.SE_PLUTO,
+  sun: SE.SUN, moon: SE.MOON, mercury: SE.MERCURY, venus: SE.VENUS,
+  mars: SE.MARS, jupiter: SE.JUPITER, saturn: SE.SATURN,
+  uranus: SE.URANUS, neptune: SE.NEPTUNE, pluto: SE.PLUTO,
   // Knoten: Human-Design-Software nutzt ueblicherweise den WAHREN Knoten.
-  northNode: swe.SE_TRUE_NODE,
+  northNode: SE.TRUE_NODE,
 };
 
-function lon(jd, body) {
-  const r = swe.swe_calc_ut(jd, body, FLAG);
-  if (!r || typeof r.longitude !== 'number') throw new Error('swe_calc_ut fehlgeschlagen für Body ' + body);
+function lon(eph, jd, body) {
+  const r = eph.calc(jd, body, MOSEPH_SPEED);
+  if (!r || typeof r.longitude !== 'number') throw new Error('Ephemeriden-Berechnung fehlgeschlagen für Body ' + body);
   return norm360(r.longitude);
 }
 
 // alle 13 Aktivierungen fuer einen Julianischen Tag (UT)
-function activationsAt(jd) {
+function activationsAt(eph, jd) {
   const out = {};
-  for (const [name, body] of Object.entries(BODIES)) out[name] = lon(jd, body);
+  for (const [name, body] of Object.entries(BODIES)) out[name] = lon(eph, jd, body);
   out.earth = norm360(out.sun + 180);        // Erde = Sonne gegenueber
   out.southNode = norm360(out.northNode + 180);
   return out;
 }
 
 // Design-Moment: JD, an dem die Sonne genau 88 Grad vor der Geburts-Sonne stand.
-function findDesignJd(jdBirth) {
-  const sunBirth = lon(jdBirth, swe.SE_SUN);
+function findDesignJd(eph, jdBirth) {
+  const sunBirth = lon(eph, jdBirth, SE.SUN);
   const target = norm360(sunBirth - 88);
   let jd = jdBirth - 88.0 / 0.9856;          // erste Schaetzung (~89.3 Tage)
   for (let i = 0; i < 12; i++) {
-    const r = swe.swe_calc_ut(jd, swe.SE_SUN, FLAG);
+    const r = eph.calc(jd, SE.SUN, MOSEPH_SPEED);
     let diff = norm360(r.longitude - target);
     if (diff > 180) diff -= 360;             // kuerzester Weg, signiert
     if (Math.abs(diff) < 1e-7) break;
@@ -70,6 +69,13 @@ async function geocode(place) {
   return { lat: hit.latitude, lon: hit.longitude, display: `${hit.name}${hit.country ? ', ' + hit.country : ''}` };
 }
 
+function jdToDate(eph, jd) {
+  const o = eph.revjul(jd, SE.GREG_CAL);
+  const hh = Math.floor(o.hour); const mm = Math.floor((o.hour - hh) * 60);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${o.year}-${p(o.month)}-${p(o.day)}T${p(hh)}:${p(mm)}Z`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
@@ -77,6 +83,8 @@ export default async function handler(req, res) {
     if (!birthDate || !birthTime) {
       return res.status(400).json({ available: false, reason: 'Human Design braucht Geburtsdatum UND exakte Geburtszeit.' });
     }
+
+    const eph = await getEphemeris();
 
     // Koordinaten: entweder mitgeliefert (vom Astrologie-Call wiederverwendet) oder geokodieren.
     let coords = null;
@@ -93,12 +101,12 @@ export default async function handler(req, res) {
     if (!local.isValid) return res.status(200).json({ available: false, reason: 'Ungueltige Datums-/Zeitangabe: ' + local.invalidReason });
     const utc = local.toUTC();
 
-    const jdBirth = swe.swe_julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60 + utc.second / 3600, swe.SE_GREG_CAL);
-    const jdDesign = findDesignJd(jdBirth);
+    const jdBirth = eph.julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60 + utc.second / 3600);
+    const jdDesign = findDesignJd(eph, jdBirth);
 
-    const chart = buildChart({ personality: activationsAt(jdBirth), design: activationsAt(jdDesign) });
+    const chart = buildChart({ personality: activationsAt(eph, jdBirth), design: activationsAt(eph, jdDesign) });
 
-    const designUtc = jdToDate(jdDesign);
+    const designUtc = jdToDate(eph, jdDesign);
     return res.status(200).json({
       available: true,
       meta: {
@@ -111,11 +119,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(200).json({ available: false, reason: 'Berechnung fehlgeschlagen: ' + (err.message || String(err)) });
   }
-}
-
-function jdToDate(jd) {
-  const o = swe.swe_revjul(jd, swe.SE_GREG_CAL);
-  const hh = Math.floor(o.hour); const mm = Math.floor((o.hour - hh) * 60);
-  const p = (n) => String(n).padStart(2, '0');
-  return `${o.year}-${p(o.month)}-${p(o.day)}T${p(hh)}:${p(mm)}Z`;
 }

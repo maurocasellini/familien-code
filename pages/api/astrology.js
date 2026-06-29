@@ -1,16 +1,21 @@
 // pages/api/astrology.js
-// Profi-Astrologie via Swiss Ephemeris (Moshier-Algorithmus, eingebaut, keine externen Files noetig).
-// Funktioniert lokal mit `npm install swisseph`. Auf Vercel ist swisseph als native binding
-// nicht garantiert. Daher: try-catch + Fallback.
+// Profi-Astrologie via swisseph-wasm (Moshier-Algorithmus, WebAssembly, keine
+// nativen Bindings und keine Ephemeriden-Dateien noetig). Laeuft identisch lokal
+// und auf Vercel.
 //
-// ZEITZONEN-FIX: Die Umrechnung der lokalen Geburtszeit in Weltzeit (UT) erfolgt jetzt korrekt
-// ueber die geografische Zeitzone des Geburtsorts (tz-lookup) und luxon, inklusive historischer
-// Sommerzeit-Regeln. Frueher wurde pauschal 1 Stunde abgezogen (CET-Naeherung), was fuer
-// Sommergeburten und Geburten ausserhalb der Schweiz falsche Positionen ergab.
-// Voraussetzung lokal: `npm install luxon tz-lookup`. Fehlen die Pakete, faellt der Code
-// auf die alte CET-Naeherung zurueck.
+// ZEITZONEN-FIX: Die Umrechnung der lokalen Geburtszeit in Weltzeit (UT) erfolgt
+// ueber die geografische Zeitzone des Geburtsorts (tz-lookup) und luxon, inklusive
+// historischer Sommerzeit-Regeln. Fehlen die Pakete, faellt der Code auf die alte
+// CET-Naeherung zurueck.
+//
+// Hinweis: Astrologie nutzt den MITTLEREN Knoten (SE_MEAN_NODE), wie zuvor.
+// (Human Design nutzt dagegen den WAHREN Knoten.)
+
+import { getEphemeris, SE } from '../../lib/ephemeris';
 
 export const config = { maxDuration: 30 };
+
+const FLAG = SE.FLG_MOSEPH;
 
 const SIGNS = ['Widder', 'Stier', 'Zwillinge', 'Krebs', 'Loewe', 'Jungfrau', 'Waage', 'Skorpion', 'Schuetze', 'Steinbock', 'Wassermann', 'Fische'];
 
@@ -54,14 +59,12 @@ async function geocode(place) {
 }
 
 // Lokale Geburtszeit -> UT, korrekt ueber Zeitzone des Geburtsorts inkl. historischer DST.
-// Gibt {year, month, day, utHour, tzName, method} zurueck. Faellt bei fehlenden Paketen
-// oder ungueltigem Datum auf CET-Naeherung (minus 1h) zurueck.
 function toUniversalTime(year, month, day, hour, minute, lat, lon) {
   const hourDecimal = hour + minute / 60;
   try {
     const tzlookup = require('tz-lookup');
     const { DateTime } = require('luxon');
-    const tzName = tzlookup(lat, lon); // wirft bei ungueltigen Koordinaten
+    const tzName = tzlookup(lat, lon);
     const local = DateTime.fromObject(
       { year, month, day, hour, minute },
       { zone: tzName }
@@ -74,14 +77,13 @@ function toUniversalTime(year, month, day, hour, minute, lat, lon) {
       day: ut.day,
       utHour: ut.hour + ut.minute / 60 + ut.second / 3600,
       tzName,
-      offsetHours: local.offset / 60, // Minuten -> Stunden (z.B. +1 CET, +2 CEST)
+      offsetHours: local.offset / 60,
       method: 'tz-lookup+luxon',
     };
   } catch (err) {
-    // Fallback: grobe CET-Naeherung (keine historische DST, kein Tageswechsel)
     let utHour = hourDecimal - 1;
     let d = day, m = month, y = year;
-    if (utHour < 0) { utHour += 24; /* Tageswechsel im Fallback ignoriert (geringe Auswirkung) */ }
+    if (utHour < 0) { utHour += 24; }
     return { year: y, month: m, day: d, utHour, tzName: null, offsetHours: 1, method: 'cet-fallback' };
   }
 }
@@ -100,7 +102,7 @@ export default async function handler(req, res) {
   const year = parseInt(dp[2], 10);
   if (!day || !month || !year) return res.status(400).json({ error: 'Invalid date numbers' });
 
-  // Parse time, default to noon if not given (mid-day is best guess for "unbekannt")
+  // Parse time, default to noon if not given
   let hour = 12, minute = 0;
   let timeKnown = false;
   if (birthTime && /^\d{1,2}:\d{2}/.test(birthTime)) {
@@ -110,15 +112,14 @@ export default async function handler(req, res) {
     timeKnown = true;
   }
 
-  // Try loading swisseph (may fail on Vercel due to native binding)
-  let swe;
+  // Ephemeride laden (WASM, keine native Kompilierung noetig)
+  let eph;
   try {
-    swe = require('swisseph');
+    eph = await getEphemeris();
   } catch (err) {
     return res.status(200).json({
       available: false,
-      reason: 'swisseph not available in this environment (lokale Installation noetig)',
-      note: 'Fuer Profi-Astrologie bitte App lokal starten (siehe README).',
+      reason: 'Ephemeride (swisseph-wasm) konnte nicht geladen werden: ' + (err.message || String(err)),
     });
   }
 
@@ -127,63 +128,43 @@ export default async function handler(req, res) {
   if (birthPlace) {
     coords = await geocode(birthPlace);
   }
-  // Fallback default: center of Switzerland (so sun/moon/nodes still compute, ASC only if coords known)
   const lat = coords ? coords.lat : 46.8;
   const lon = coords ? coords.lon : 8.2;
 
-  // Lokale Zeit -> UT, korrekt ueber Zeitzone des Geburtsorts (inkl. historischer Sommerzeit).
   const utc = toUniversalTime(year, month, day, hour, minute, lat, lon);
-  const julDay = swe.swe_julday(utc.year, utc.month, utc.day, utc.utHour, swe.SE_GREG_CAL);
+  const julDay = eph.julday(utc.year, utc.month, utc.day, utc.utHour);
 
-  const flag = swe.SEFLG_MOSEPH;
-
-  // Helper: synchronous wrapper (swe_calc_ut uses sync callbacks)
-  function calcPlanet(planet) {
-    return new Promise((resolve) => {
-      swe.swe_calc_ut(julDay, planet, flag, (result) => {
-        if (result && result.longitude !== undefined) {
-          resolve(signFromDegree(result.longitude));
-        } else {
-          resolve(null);
-        }
-      });
-    });
-  }
-  function calcHouses() {
-    return new Promise((resolve) => {
-      swe.swe_houses(julDay, lat, lon, 'P', (result) => {
-        if (result && result.ascendant !== undefined) {
-          resolve({
-            ascendant: signFromDegree(result.ascendant),
-            mc: signFromDegree(result.mc),
-            houses: result.house ? result.house.map(h => signFromDegree(h)) : null,
-          });
-        } else {
-          resolve(null);
-        }
-      });
-    });
+  // Synchroner Positions-Helfer
+  function pos(body) {
+    try {
+      const r = eph.calc(julDay, body, FLAG);
+      if (r && typeof r.longitude === 'number') return signFromDegree(r.longitude);
+    } catch (e) { /* Body nicht verfuegbar (z.B. Chiron im Moshier-Modus) */ }
+    return null;
   }
 
   try {
-    const [sun, moon, mercury, venus, mars, jupiter, saturn, uranus, neptune, pluto, meanNode, chiron] = await Promise.all([
-      calcPlanet(swe.SE_SUN),
-      calcPlanet(swe.SE_MOON),
-      calcPlanet(swe.SE_MERCURY),
-      calcPlanet(swe.SE_VENUS),
-      calcPlanet(swe.SE_MARS),
-      calcPlanet(swe.SE_JUPITER),
-      calcPlanet(swe.SE_SATURN),
-      calcPlanet(swe.SE_URANUS),
-      calcPlanet(swe.SE_NEPTUNE),
-      calcPlanet(swe.SE_PLUTO),
-      calcPlanet(swe.SE_MEAN_NODE),
-      calcPlanet(swe.SE_CHIRON).catch(() => null),
-    ]);
+    const sun = pos(SE.SUN);
+    const moon = pos(SE.MOON);
+    const mercury = pos(SE.MERCURY);
+    const venus = pos(SE.VENUS);
+    const mars = pos(SE.MARS);
+    const jupiter = pos(SE.JUPITER);
+    const saturn = pos(SE.SATURN);
+    const uranus = pos(SE.URANUS);
+    const neptune = pos(SE.NEPTUNE);
+    const pluto = pos(SE.PLUTO);
+    const meanNode = pos(SE.MEAN_NODE);
+    const chiron = pos(SE.CHIRON); // im Moshier-Modus ggf. null
 
-    const houses = timeKnown && coords ? await calcHouses() : null;
+    // Haeuser nur wenn Zeit UND Ort bekannt
+    let houses = null;
+    if (timeKnown && coords) {
+      const h = eph.houses(julDay, lat, lon, 'P');
+      houses = { ascendant: signFromDegree(h.ascendant), mc: signFromDegree(h.mc) };
+    }
 
-    // South Node = opposite of North Node
+    // South Node = gegenueber dem North (Mean) Node
     const southNodeLon = (meanNode.longitude + 180) % 360;
     const southNode = signFromDegree(southNodeLon);
 

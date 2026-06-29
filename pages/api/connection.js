@@ -2,50 +2,49 @@
 //  /api/connection  – Human-Design Connection Chart (Composite) fuer ZWEI Personen.
 //
 //  Berechnet pro Person den vollen BodyGraph mit exakt derselben Pipeline wie
-//  /api/humandesign (Moshier, WAHRER Knoten, tz-lookup + luxon, 88-Grad-Design),
-//  und legt darueber die Verbindungs-Analyse aus lib/connectionChart.js:
-//  elektromagnetisch / gefaehrtenschaft / dominanz / kompromiss, verbundene
-//  Zentren und im Paar NEU entstehende Zentren.
+//  /api/humandesign (Moshier ueber swisseph-wasm, WAHRER Knoten, tz-lookup + luxon,
+//  88-Grad-Design), und legt darueber die Verbindungs-Analyse aus
+//  lib/connectionChart.js: elektromagnetisch / gefaehrtenschaft / dominanz /
+//  kompromiss, verbundene Zentren und im Paar NEU entstehende Zentren.
 //
 //  Knoten-Konsistenz ist automatisch: beide Charts kommen aus derselben
 //  Berechnung, es kann nichts auseinanderdriften.
 // ───────────────────────────────────────────────────────────────────────────
-import swe from 'swisseph';
 import tzlookup from 'tz-lookup';
 import { DateTime } from 'luxon';
 import { buildChart, norm360 } from '../../lib/humandesign';
 import { connectionChart } from '../../lib/connectionChart';
+import { getEphemeris, SE, MOSEPH_SPEED } from '../../lib/ephemeris';
 
 export const config = { maxDuration: 30 };
 
-const FLAG = swe.SEFLG_MOSEPH | swe.SEFLG_SPEED;
 const BODIES = {
-  sun: swe.SE_SUN, moon: swe.SE_MOON, mercury: swe.SE_MERCURY, venus: swe.SE_VENUS,
-  mars: swe.SE_MARS, jupiter: swe.SE_JUPITER, saturn: swe.SE_SATURN,
-  uranus: swe.SE_URANUS, neptune: swe.SE_NEPTUNE, pluto: swe.SE_PLUTO,
-  northNode: swe.SE_TRUE_NODE,   // wie /api/humandesign: WAHRER Knoten
+  sun: SE.SUN, moon: SE.MOON, mercury: SE.MERCURY, venus: SE.VENUS,
+  mars: SE.MARS, jupiter: SE.JUPITER, saturn: SE.SATURN,
+  uranus: SE.URANUS, neptune: SE.NEPTUNE, pluto: SE.PLUTO,
+  northNode: SE.TRUE_NODE,   // wie /api/humandesign: WAHRER Knoten
 };
 
-function lon(jd, body) {
-  const r = swe.swe_calc_ut(jd, body, FLAG);
-  if (!r || typeof r.longitude !== 'number') throw new Error('swe_calc_ut fehlgeschlagen für Body ' + body);
+function lon(eph, jd, body) {
+  const r = eph.calc(jd, body, MOSEPH_SPEED);
+  if (!r || typeof r.longitude !== 'number') throw new Error('Ephemeriden-Berechnung fehlgeschlagen für Body ' + body);
   return norm360(r.longitude);
 }
 
-function activationsAt(jd) {
+function activationsAt(eph, jd) {
   const out = {};
-  for (const [name, body] of Object.entries(BODIES)) out[name] = lon(jd, body);
+  for (const [name, body] of Object.entries(BODIES)) out[name] = lon(eph, jd, body);
   out.earth = norm360(out.sun + 180);
   out.southNode = norm360(out.northNode + 180);
   return out;
 }
 
-function findDesignJd(jdBirth) {
-  const sunBirth = lon(jdBirth, swe.SE_SUN);
+function findDesignJd(eph, jdBirth) {
+  const sunBirth = lon(eph, jdBirth, SE.SUN);
   const target = norm360(sunBirth - 88);
   let jd = jdBirth - 88.0 / 0.9856;
   for (let i = 0; i < 12; i++) {
-    const r = swe.swe_calc_ut(jd, swe.SE_SUN, FLAG);
+    const r = eph.calc(jd, SE.SUN, MOSEPH_SPEED);
     let diff = norm360(r.longitude - target);
     if (diff > 180) diff -= 360;
     if (Math.abs(diff) < 1e-7) break;
@@ -65,15 +64,15 @@ async function geocode(place) {
   return { lat: hit.latitude, lon: hit.longitude, display: `${hit.name}${hit.country ? ', ' + hit.country : ''}` };
 }
 
-function jdToDate(jd) {
-  const o = swe.swe_revjul(jd, swe.SE_GREG_CAL);
+function jdToDate(eph, jd) {
+  const o = eph.revjul(jd, SE.GREG_CAL);
   const hh = Math.floor(o.hour); const mm = Math.floor((o.hour - hh) * 60);
   const p = (n) => String(n).padStart(2, '0');
   return `${o.year}-${p(o.month)}-${p(o.day)}T${p(hh)}:${p(mm)}Z`;
 }
 
 // Vollen BodyGraph fuer EINE Person berechnen (gibt {available, meta, chart} zurueck).
-async function computeOne({ birthDate, birthTime, birthPlace, lat, lon: lonIn }) {
+async function computeOne(eph, { birthDate, birthTime, birthPlace, lat, lon: lonIn }) {
   if (!birthDate || !birthTime || birthTime === 'unbekannt') {
     return { available: false, reason: 'Geburtsdatum UND exakte Geburtszeit noetig.' };
   }
@@ -91,14 +90,14 @@ async function computeOne({ birthDate, birthTime, birthPlace, lat, lon: lonIn })
   if (!local.isValid) return { available: false, reason: 'Ungueltige Datums-/Zeitangabe: ' + local.invalidReason };
   const utc = local.toUTC();
 
-  const jdBirth = swe.swe_julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60 + utc.second / 3600, swe.SE_GREG_CAL);
-  const jdDesign = findDesignJd(jdBirth);
-  const chart = buildChart({ personality: activationsAt(jdBirth), design: activationsAt(jdDesign) });
+  const jdBirth = eph.julday(utc.year, utc.month, utc.day, utc.hour + utc.minute / 60 + utc.second / 3600);
+  const jdDesign = findDesignJd(eph, jdBirth);
+  const chart = buildChart({ personality: activationsAt(eph, jdBirth), design: activationsAt(eph, jdDesign) });
 
   return {
     available: true,
     meta: {
-      zone, birthUtc: utc.toISO(), designUtc: jdToDate(jdDesign),
+      zone, birthUtc: utc.toISO(), designUtc: jdToDate(eph, jdDesign),
       coords: { lat: +coords.lat.toFixed(4), lon: +coords.lon.toFixed(4), display: coords.display },
       node: 'true', ephemeris: 'Moshier',
     },
@@ -114,7 +113,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ available: false, reason: 'Es braucht personA und personB mit Geburtsdaten.' });
     }
 
-    const [a, b] = await Promise.all([computeOne(personA), computeOne(personB)]);
+    const eph = await getEphemeris();
+    const [a, b] = await Promise.all([computeOne(eph, personA), computeOne(eph, personB)]);
     if (!a.available) return res.status(200).json({ available: false, reason: `Person A: ${a.reason}` });
     if (!b.available) return res.status(200).json({ available: false, reason: `Person B: ${b.reason}` });
 
