@@ -3,19 +3,28 @@ const nextConfig = {
   reactStrictMode: false,
 
   experimental: {
-    // swisseph-wasm NICHT in den Webpack-Bundle packen, sondern zur Laufzeit
-    // aus node_modules laden. Nur so finden die internen Pfad-Aufrufe der
-    // Bibliothek (import.meta.url) ihre WASM-Datei.
+    // App-Router-Pfad (schadet nicht, hilft falls je genutzt).
     serverComponentsExternalPackages: ['swisseph-wasm'],
 
-    // Die WASM- und Datendatei mit ins Vercel-Deployment der drei
-    // Ephemeriden-Endpunkte packen (sie werden ueber einen berechneten Pfad
-    // geladen, daher findet Vercels Auto-Erkennung sie sonst nicht).
+    // Das ganze swisseph-wasm-Paket (inkl. wasm/ und src/) mit ins Deployment
+    // der drei Ephemeriden-Endpunkte packen, da es zur Laufzeit aus node_modules
+    // geladen wird.
     outputFileTracingIncludes: {
-      '/api/humandesign': ['./node_modules/swisseph-wasm/wasm/**'],
-      '/api/connection': ['./node_modules/swisseph-wasm/wasm/**'],
-      '/api/astrology': ['./node_modules/swisseph-wasm/wasm/**'],
+      '/api/humandesign': ['./node_modules/swisseph-wasm/**'],
+      '/api/connection': ['./node_modules/swisseph-wasm/**'],
+      '/api/astrology': ['./node_modules/swisseph-wasm/**'],
     },
+  },
+
+  // Entscheidend: swisseph-wasm NICHT von Webpack buendeln/minifizieren lassen,
+  // sondern zur Laufzeit als echtes ES-Modul aus node_modules laden. Nur so
+  // funktionieren der interne WASM-Lader und die import.meta.url-Pfadaufloesung.
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({ 'swisseph-wasm': 'module swisseph-wasm' });
+    }
+    return config;
   },
 }
 
