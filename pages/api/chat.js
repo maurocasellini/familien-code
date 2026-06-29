@@ -134,7 +134,19 @@ export default async function handler(req, res) {
       };
       if (disp) fetchOpts.dispatcher = disp;
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', fetchOpts);
+      // Transiente API-Fehler (429 Rate-Limit, 529 Overloaded, 5xx) automatisch
+      // wiederholen, mit wachsender Pause. So sieht die Nutzerin "Overloaded" nicht.
+      let response;
+      const maxRetries = 5;
+      for (let attempt = 0; ; attempt++) {
+        response = await fetch('https://api.anthropic.com/v1/messages', fetchOpts);
+        if (response.ok) break;
+        const retriable = response.status === 429 || response.status === 529 || response.status >= 500;
+        if (!retriable || attempt >= maxRetries) break;
+        const waitMs = Math.min(16000, 1000 * Math.pow(2, attempt)) + Math.floor(Math.random() * 500);
+        console.warn(`[chat] API ${response.status} (transient), Versuch ${attempt + 1}/${maxRetries}, warte ${waitMs}ms`);
+        await new Promise(r => setTimeout(r, waitMs));
+      }
       if (!response.ok) {
         const errorText = await response.text();
         let errorJson;
