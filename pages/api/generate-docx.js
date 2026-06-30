@@ -344,6 +344,73 @@ function emitText(text, out, tx) {
   });
 }
 
+// Karten-Grid (Entscheidungsradar etc.) — gestaltete Boxen wie auf der Website:
+// Eyebrow · grosser Kursivtitel (Untertitel-Feld) · Titel · kursiver Fliesstext.
+// Marker: [KARTE:Eyebrow|Titel|Untertitel|Beschreibung], 2-spaltig.
+function buildKartenGrid(cards, tx) {
+  const noBorder = {
+    top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+  };
+  const cardCell = (cardBody) => {
+    const [eyebrow, titel, untertitel, desc] = (cardBody || '').split('|');
+    const paras = [];
+    if (eyebrow && eyebrow.trim()) paras.push(new Paragraph({
+      children: [new TextRun({ text: tx(eyebrow).toUpperCase(), bold: true, size: 13, color: C.roseLight, font: 'Raleway' })],
+      spacing: { before: 40, after: 70 },
+    }));
+    if (untertitel && untertitel.trim()) paras.push(new Paragraph({
+      children: [new TextRun({ text: tx(untertitel), italics: true, size: 36, color: C.rose, font: 'Playfair Display' })],
+      spacing: { before: 0, after: 70 },
+    }));
+    if (titel && titel.trim()) paras.push(new Paragraph({
+      children: [new TextRun({ text: tx(titel), size: 22, color: C.ink, font: 'Playfair Display' })],
+      spacing: { before: 0, after: 90 },
+    }));
+    if (desc && desc.trim()) paras.push(new Paragraph({
+      children: [new TextRun({ text: tx(desc), italics: true, size: 18, color: C.inkSoft, font: 'Georgia' })],
+      spacing: { before: 0, after: 60, line: 300 },
+    }));
+    if (!paras.length) paras.push(new Paragraph({ children: [new TextRun({ text: '' })] }));
+    return new TableCell({
+      children: paras,
+      shading: { type: ShadingType.SOLID, color: C.white, fill: C.white },
+      margins: { top: 200, bottom: 200, left: 240, right: 240 },
+      verticalAlign: 'top',
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 14, color: C.roseLight },
+        bottom: { style: BorderStyle.SINGLE, size: 2, color: C.gold },
+        left: { style: BorderStyle.SINGLE, size: 2, color: C.gold },
+        right: { style: BorderStyle.SINGLE, size: 2, color: C.gold },
+      },
+    });
+  };
+  const spacer = () => new TableCell({
+    children: [new Paragraph({ children: [new TextRun({ text: '' })] })],
+    borders: noBorder, width: { size: 300, type: WidthType.DXA },
+  });
+  const emptyCell = () => new TableCell({
+    children: [new Paragraph({ children: [new TextRun({ text: '' })] })],
+    borders: noBorder,
+  });
+
+  const blocks = [];
+  for (let i = 0; i < cards.length; i += 2) {
+    const left = cardCell(cards[i]);
+    const right = (i + 1 < cards.length) ? cardCell(cards[i + 1]) : emptyCell();
+    blocks.push(new Table({
+      rows: [new TableRow({ children: [left, spacer(), right] })],
+      width: { size: 9072, type: WidthType.DXA },
+      columnWidths: [4386, 300, 4386],
+      borders: { ...noBorder, insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, insideVertical: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } },
+    }));
+    blocks.push(new Paragraph({ spacing: { before: 0, after: 150 }, children: [new TextRun({ text: '' })] }));
+  }
+  return blocks;
+}
+
 // MAIN: parse body text into docx blocks (Paragraphs + Tables)
 function bodyToBlocks(bodyText, tx) {
   const out = [];
@@ -354,12 +421,14 @@ function bodyToBlocks(bodyText, tx) {
     const nameGridMatch = remaining.match(/\[NAMEN-GRID-START\]([\s\S]*?)\[NAMEN-GRID-END\]/);
     const pinnacleMatch = remaining.match(/\[PINNACLE:([^\]]+)\]/);
     const essenzMatch = remaining.match(/\[ESSENZ:([^\]]+)\]/);
+    const kartenGridMatch = remaining.match(/\[KARTEN-GRID-START\]([\s\S]*?)\[KARTEN-GRID-END\]/);
 
     const candidates = [
       yearTblMatch && { kind: 'year', match: yearTblMatch, index: yearTblMatch.index },
       nameGridMatch && { kind: 'names', match: nameGridMatch, index: nameGridMatch.index },
       pinnacleMatch && { kind: 'pinnacle', match: pinnacleMatch, index: pinnacleMatch.index },
       essenzMatch && { kind: 'essenz', match: essenzMatch, index: essenzMatch.index },
+      kartenGridMatch && { kind: 'karten', match: kartenGridMatch, index: kartenGridMatch.index },
     ].filter(Boolean).sort((a, b) => a.index - b.index);
 
     if (candidates.length === 0) {
@@ -387,6 +456,11 @@ function bodyToBlocks(bodyText, tx) {
       remaining = remaining.slice(next.index + next.match[0].length);
     } else if (next.kind === 'essenz') {
       out.push(buildEssenceBox(next.match[1], tx));
+      remaining = remaining.slice(next.index + next.match[0].length);
+    } else if (next.kind === 'karten') {
+      const inner = next.match[1] || '';
+      const cards = [...inner.matchAll(/\[KARTE:([^\]]+)\]/g)].map(m => m[1]);
+      if (cards.length > 0) buildKartenGrid(cards, tx).forEach(b => out.push(b));
       remaining = remaining.slice(next.index + next.match[0].length);
     }
   }
@@ -432,19 +506,28 @@ export default async function handler(req, res) {
   // ── SECTIONS ──────────────────────────────────────────
   sections.forEach((sec, idx) => {
     const lines = sec.split('\n');
-    const title = lines[0].replace(/^#+\s*/, '').trim();
-    const bodyText = lines.slice(1).join('\n').trim();
+    const firstRaw = (lines[0] || '').trim();
+    const firstClean = firstRaw.replace(/^#+\s*/, '').trim();
+    // Eine echte Sektions-Ueberschrift ist kurzer Klartext (evtl. mit #), KEIN Marker und keine Prosa.
+    const isMarkerLine = /\[[A-Z]/.test(firstRaw);
+    const isProseLine = firstClean.length > 70;
+    const hasCleanTitle = firstClean.length > 0 && !isMarkerLine && !isProseLine;
+    const bodyText = (hasCleanTitle ? lines.slice(1).join('\n') : sec).trim();
 
-    children.push(new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 480, after: 80 },
-      children: [new TextRun({ text: filterText(title), font: 'Playfair Display', size: 40, color: C.rose })],
-    }));
-    children.push(new Paragraph({
-      spacing: { before: 0, after: 240 },
-      children: [new TextRun({ text: '', size: 2 })],
-      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: C.gold, space: 4 } },
-    }));
+    if (hasCleanTitle) {
+      children.push(new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 480, after: 80 },
+        children: [new TextRun({ text: filterText(firstClean), font: 'Playfair Display', size: 40, color: C.rose })],
+      }));
+      children.push(new Paragraph({
+        spacing: { before: 0, after: 240 },
+        children: [new TextRun({ text: '', size: 2 })],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: C.gold, space: 4 } },
+      }));
+    } else {
+      children.push(new Paragraph({ spacing: { before: 420 }, children: [new TextRun({ text: '' })] }));
+    }
 
     bodyToBlocks(bodyText, filterText).forEach(b => children.push(b));
 
