@@ -262,7 +262,7 @@ function buildEssenceBox(text, tx) {
 function stripSimpleMarkers(text) {
   let t = text;
   t = t.replace(/\[(PERSON|KARTEN|ASTRO|HS)-GRID-START\]/g, '');
-  t = t.replace(/\[(PERSON|KARTEN|ASTRO|HS)-GRID-END\]/g, '');
+  t = t.replace(/\[(PERSON|KARTEN|ASTRO|HS)-GRID-END\]/g, ''); t = t.replace(/\[HS-(START|END)\]/g, '');
   t = t.replace(/\[PERSON-CARD:([^\]]+)\]/g, (_, body) => {
     const parts = body.split('|');
     return `\n**${parts[0] || ''}: ${parts[1] || ''}**\n${parts[2] || ''} · ${parts[3] || ''}\n${parts[4] || ''}\n*${parts.slice(5).join(' · ')}*\n`;
