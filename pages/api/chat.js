@@ -104,23 +104,32 @@ export default async function handler(req, res) {
     const systemFull = systemPrompt + depthInstruction; // volle Tiefe lokal UND auf Vercel
     const disp = getLongDispatcher(); // auch auf Vercel: lange Opus-Runden brauchen langen Timeout
 
-    // ── FORTSETZUNGS-SCHLEIFE ──────────────────────────────────────
-    // Endet die Antwort am Token-Limit (stop_reason: "max_tokens"), wird
-    // automatisch weitergeneriert: der bisherige Text wird als Assistant-Prefill
-    // angehaengt, das Modell schreibt nahtlos weiter, die Teile werden zusammengefuegt
-    // bis das Modell natuerlich fertig ist (end_turn). So waechst die Laenge automatisch
-    // mit der gewaehlten Modul-Menge und wird nie abgeschnitten.
-    // Auf Vercel (60s-Limit) bleibt es bei 1 Runde.
-    const maxRounds = 10; // volle Fortsetzung lokal UND auf Vercel (Pro-Plan)
+    // ===== STREAMING + FORTSETZUNGS-SCHLEIFE =====
+    // Lange Generierungen werden auf Vercel abgebrochen, wenn ueber Minuten KEINE Bytes
+    // fliessen. Loesung: wir streamen die Anthropic-Deltas live zum Browser (haelt die
+    // Verbindung offen, zeigt Fortschritt) und setzen ueber mehrere Runden fort
+    // (continue-turn-Muster, da claude-opus-4-8 kein Assistant-Prefill kann), bis das
+    // Modell natuerlich fertig ist (end_turn). Format: NDJSON, eine JSON-Zeile pro
+    // Ereignis ({type:'start'|'delta'|'done'|'error'}).
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+    const sse = (obj) => {
+      res.write(JSON.stringify(obj) + '\n');
+      if (typeof res.flush === 'function') res.flush();
+    };
+    sse({ type: 'start' });
+
+    const maxRounds = 10;
     let fullText = '';
-    let lastData = null;
     let stopReason = null;
     let rounds = 0;
 
     while (rounds < maxRounds) {
-      if (fullText) fullText = fullText.replace(/\s+$/, ''); // kein trailing whitespace im Prefill
+      if (fullText) fullText = fullText.replace(/\s+$/, '');
       const roundMessages = fullText
-        ? [...messages, { role: 'assistant', content: fullText }]
+        ? [...messages, { role: 'assistant', content: fullText }, { role: 'user', content: 'Fahre exakt dort fort, wo du aufgeh\u00f6rt hast. Wiederhole nichts, schreibe keine neue Einleitung und keine bereits gesetzte \u00dcberschrift erneut, setze den laufenden Text unmittelbar und nahtlos fort.' }]
         : messages;
       const fetchOpts = {
         method: 'POST',
@@ -130,12 +139,12 @@ export default async function handler(req, res) {
           max_tokens: maxTokens,
           system: systemFull,
           messages: roundMessages,
+          stream: true,
         }),
       };
       if (disp) fetchOpts.dispatcher = disp;
 
-      // Transiente API-Fehler (429 Rate-Limit, 529 Overloaded, 5xx) automatisch
-      // wiederholen, mit wachsender Pause. So sieht die Nutzerin "Overloaded" nicht.
+      // Transiente Fehler beim Verbindungsaufbau (429/529/5xx) mit Backoff wiederholen.
       let response;
       const maxRetries = 5;
       for (let attempt = 0; ; attempt++) {
@@ -148,28 +157,54 @@ export default async function handler(req, res) {
         await new Promise(r => setTimeout(r, waitMs));
       }
       if (!response.ok) {
-        const errorText = await response.text();
-        let errorJson;
-        try { errorJson = JSON.parse(errorText); } catch (e) { errorJson = { error: { message: errorText } }; }
-        console.error('[chat] Anthropic returned non-OK status', response.status, errorJson);
-        if (fullText) break; // schon Text gesammelt -> nicht verwerfen, das Bisherige zurueckgeben
-        return res.status(response.status).json(errorJson);
+        const errorText = await response.text().catch(() => '');
+        let msg = errorText;
+        try { msg = JSON.parse(errorText).error?.message || errorText; } catch (e) {}
+        console.error('[chat] Anthropic non-OK', response.status, msg);
+        if (fullText) break; // schon Text gesammelt -> das Bisherige liefern
+        sse({ type: 'error', message: `API-Fehler ${response.status}: ${msg}` });
+        return res.end();
       }
 
-      const roundData = await response.json();
-      lastData = roundData;
-      const chunk = (roundData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-      fullText += chunk;
-      stopReason = roundData.stop_reason;
+      // Anthropic-SSE-Stream lesen, nur text_delta weiterstreamen, Rest ignorieren.
+      let roundChunk = '';
+      let roundStop = null;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nlIdx;
+        while ((nlIdx = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nlIdx);
+          buf = buf.slice(nlIdx + 1);
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const payload = trimmed.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          let evt;
+          try { evt = JSON.parse(payload); } catch (e) { continue; }
+          if (evt.type === 'content_block_delta' && evt.delta && evt.delta.type === 'text_delta' && evt.delta.text) {
+            roundChunk += evt.delta.text;
+            sse({ type: 'delta', text: evt.delta.text });
+          } else if (evt.type === 'message_delta' && evt.delta && evt.delta.stop_reason) {
+            roundStop = evt.delta.stop_reason;
+          }
+        }
+      }
+
+      fullText += roundChunk;
+      stopReason = roundStop;
       rounds++;
       if (stopReason !== 'max_tokens') break; // natuerliches Ende erreicht
-      if (!chunk) break;                       // Schutz gegen Endlosschleife
+      if (!roundChunk) break;                  // Schutz gegen Endlosschleife
     }
-    console.log('[chat] Fortsetzungs-Runden:', rounds, '| stop_reason:', stopReason, '| Zeichen:', fullText.length);
+    console.log('[chat] Streaming-Runden:', rounds, '| stop_reason:', stopReason, '| Zeichen:', fullText.length);
 
     // Zusammengefuegtes Resultat als ein Text-Block (Form bleibt wie zuvor fuer den Client)
     const data = {
-      ...(lastData || {}),
       content: [{ type: 'text', text: fullText }],
       stop_reason: stopReason,
     };
@@ -264,20 +299,19 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json(data);
+    sse({ type: 'done', text: (data.content && data.content[0] && data.content[0].text) || fullText, stop_reason: stopReason });
+    return res.end();
   } catch (err) {
-    // Detaillierter Fehler in Server-Logs (Terminal von npm run electron:dev)
     console.error('[chat] Fetch failed. Full error:', err);
     console.error('[chat] err.cause:', err.cause);
-    console.error('[chat] err.code:', err.code);
     const detail = err.cause?.message || err.cause?.code || err.code || 'unbekannt';
-    return res.status(500).json({
-      error: {
-        message: `${err.message} (Detail: ${detail}). Bitte schau in der Terminal-Konsole nach dem genauen Fehler. Häufige Ursachen: Internet nicht erreichbar, falscher API-Key, oder API-Key fehlt in .env.local.`,
-        original: err.message,
-        cause: err.cause?.message || err.cause?.code || null,
-      }
-    });
+    const message = `${err.message} (Detail: ${detail}).`;
+    // Laeuft der Stream schon, Fehler als Stream-Ereignis senden; sonst als JSON-Fehler.
+    if (res.headersSent) {
+      try { res.write(JSON.stringify({ type: 'error', message }) + '\n'); } catch (e) {}
+      return res.end();
+    }
+    return res.status(500).json({ error: { message, original: err.message, cause: err.cause?.message || err.cause?.code || null } });
   }
 }
 

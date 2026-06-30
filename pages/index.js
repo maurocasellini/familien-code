@@ -2016,21 +2016,52 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
             depth: state.depth,
           })
         });
-        // Defensiv: erst als Text lesen, dann versuchen JSON zu parsen.
-        // Auf Vercel kommt bei Timeout HTML-Error-Page statt JSON zurück.
-        const rawText = await res.text();
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (parseErr) {
-          if (res.status === 504 || rawText.includes('timed out') || rawText.includes('FUNCTION_INVOCATION_TIMEOUT')) {
-            throw new Error('Die Generation hat das Zeit-Limit der Online-Demo (60 Sekunden) ueberschritten. Für die volle Tiefe bitte die App lokal starten (siehe LOCAL_SETUP.md). In der Online-Version wird automatisch eine Kurzversion erstellt; vermutlich braucht der Server gerade kurzfristig länger als sonst, bitte erneut versuchen.');
+        // Streaming: der Server schickt fortlaufend NDJSON-Zeilen
+        // ({type:'start'|'delta'|'done'|'error'}). Das Lesen des Streams haelt die
+        // Verbindung offen, auch bei langen Reports (kein "Failed to fetch" mehr).
+        // Den finalen, umlaut-korrigierten Text nehmen wir aus dem 'done'-Ereignis.
+        if (!res.ok || !res.body) {
+          const t = await res.text().catch(() => '');
+          if (res.status === 504 || t.includes('timed out') || t.includes('FUNCTION_INVOCATION_TIMEOUT')) {
+            throw new Error('Die Generation hat das Zeit-Limit überschritten. Bitte erneut versuchen.');
           }
-          throw new Error(`Server-Antwort war kein gültiges JSON (Status ${res.status}). Erste 200 Zeichen: ${rawText.slice(0, 200)}`);
+          throw new Error(`Server-Fehler (Status ${res.status}). ${String(t).slice(0, 200)}`);
         }
-        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let streamBuf = '';
+        let finalText = '';
+        let streamErr = '';
+        let gotDone = false;
+        let streamEnded = false;
+        while (!streamEnded) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          streamBuf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = streamBuf.indexOf('\n')) >= 0) {
+            const line = streamBuf.slice(0, nl).trim();
+            streamBuf = streamBuf.slice(nl + 1);
+            if (!line) continue;
+            let evt;
+            try { evt = JSON.parse(line); } catch (e) { continue; }
+            if (evt.type === 'done') {
+              finalText = evt.text || '';
+              gotDone = true;
+              streamEnded = true;
+              break;
+            } else if (evt.type === 'error') {
+              streamErr = evt.message || 'Unbekannter Fehler bei der Generierung.';
+              streamEnded = true;
+              break;
+            }
+            // {type:'start'} und {type:'delta'} halten nur die Verbindung offen.
+          }
+        }
+        if (streamErr) throw new Error(streamErr);
+        if (!gotDone) throw new Error('Verbindung unterbrochen, bevor der Text vollständig war. Bitte erneut versuchen.');
         stopLoader();
-        renderResult(data.content?.[0]?.text || '');
+        renderResult(finalText);
       } catch (err) {
         stopLoader();
         renderError(err.message);
