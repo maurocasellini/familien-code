@@ -120,7 +120,7 @@ export default async function handler(req, res) {
     while (rounds < maxRounds) {
       if (fullText) fullText = fullText.replace(/\s+$/, ''); // kein trailing whitespace im Prefill
       const roundMessages = fullText
-        ? [...messages, { role: 'assistant', content: fullText }]
+        ? [...messages, { role: 'assistant', content: fullText }, { role: 'user', content: 'Fahre exakt dort fort, wo du aufgehört hast. Wiederhole nichts vom bereits geschriebenen Text, schreibe keine neue Einleitung und keine bereits gesetzte Überschrift erneut. Setze den laufenden Text unmittelbar und nahtlos fort, als hättest du nie pausiert.' }]
         : messages;
       const fetchOpts = {
         method: 'POST',
