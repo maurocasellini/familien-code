@@ -463,13 +463,33 @@ export default function Home() {
     }
 
     // ── NAME CHANGE ANALYSIS ────────────────────────────────────────
+    const NAME_OCCASIONS = {
+      adoption: 'Adoption',
+      scheidung_eltern: 'Namensaenderung nach Scheidung der Eltern',
+      wiederheirat_eltern: 'Wiederheirat eines Elternteils (Stiefname)',
+      legitimation: 'Legitimation / Anerkennung (nachtraegliche Vaterschaft)',
+      heirat_partnername: 'Heirat · Annahme des Partnernamens',
+      heirat_doppelname: 'Heirat · Doppelname / Namensvereinigung',
+      rueckkehr_geburtsname: 'Rueckkehr zum Geburtsnamen (Scheidung / Verwitwung)',
+      behoerdlich_frei: 'Freie behoerdliche Namensaenderung',
+      einbuergerung: 'Einbuergerung / Migration (neue Schreibweise)',
+      transition: 'Geschlechtsangleichung / Transition',
+      spitzname: 'Spitzname / Kosename im Alltag',
+      kuenstlername: 'Kuenstlername / Pseudonym',
+      kurzform: 'Kurzform des Vornamens',
+      taufname: 'Tauf- oder Firmname',
+      ordensname: 'Ordens-, Kloster- oder spiritueller Name',
+    };
     function nameChangeBlock(prefix, label) {
       const firstName = val(`${prefix}-newname-first`);
+      const middleName = val(`${prefix}-newname-middle`);
       const lastName = val(`${prefix}-newname-last`);
-      if (!firstName && !lastName) return '';
-      const full = `${firstName} ${lastName}`.trim();
+      if (!firstName && !middleName && !lastName) return '';
+      const occKey = val(`${prefix}-newname-occasion`);
+      const occLabel = NAME_OCCASIONS[occKey] || '';
+      const full = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
       const n = nameNums(full);
-      return `\n${label} — NEUER NAME: ${full}\n- Neue Ausdruckszahl: ${n.expression}\n- Neue Persönlichkeitszahl: ${n.personality}\n- Neue Seelendrang-Zahl: ${n.soul}`;
+      return `\n${label} — NEUER NAME: ${full}${occLabel ? `\n- Anlass: ${occLabel}` : ''}\n- Neue Ausdruckszahl: ${n.expression}\n- Neue Persönlichkeitszahl: ${n.personality}\n- Neue Seelendrang-Zahl: ${n.soul}`;
     }
     function toggleField(inputId, toggleId) {
       const input = document.getElementById(inputId);
@@ -3518,14 +3538,49 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               <span className="namechange-toggle-label">Person hat den Namen geändert (z. B. nach Heirat)</span>
             </div>
             <div className="namechange-fields">
-              <div className="field-row" style={{marginTop: '8px'}}>
+              <div className="field-group" style={{marginTop: '8px'}}>
+                <label className="field-label">Anlass der Namensänderung</label>
+                <select className="field-input" id="p1-newname-occasion" defaultValue="">
+                  <option value="">Anlass wählen …</option>
+                  <optgroup label="Kindheit / Familie">
+                    <option value="adoption">Adoption</option>
+                    <option value="scheidung_eltern">Nach Scheidung der Eltern</option>
+                    <option value="wiederheirat_eltern">Wiederheirat eines Elternteils (Stiefname)</option>
+                    <option value="legitimation">Legitimation / Anerkennung</option>
+                  </optgroup>
+                  <optgroup label="Partnerschaft">
+                    <option value="heirat_partnername">Heirat · Partnername</option>
+                    <option value="heirat_doppelname">Heirat · Doppelname</option>
+                    <option value="rueckkehr_geburtsname">Rückkehr zum Geburtsnamen</option>
+                  </optgroup>
+                  <optgroup label="Behördlich / rechtlich">
+                    <option value="behoerdlich_frei">Freie behördliche Namensänderung</option>
+                    <option value="einbuergerung">Einbürgerung / Migration</option>
+                    <option value="transition">Geschlechtsangleichung / Transition</option>
+                  </optgroup>
+                  <optgroup label="Gelebter Name">
+                    <option value="spitzname">Spitzname / Kosename</option>
+                    <option value="kuenstlername">Künstlername / Pseudonym</option>
+                    <option value="kurzform">Kurzform des Vornamens</option>
+                  </optgroup>
+                  <optgroup label="Spirituell / religiös">
+                    <option value="taufname">Tauf- oder Firmname</option>
+                    <option value="ordensname">Ordens- / Klostername</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div className="field-row-3" style={{marginTop: '8px'}}>
                 <div className="field-group">
                   <label className="field-label">Neuer Vorname</label>
-                  <input className="field-input" id="p1-newname-first" placeholder="Neuer Vorname" />
+                  <input className="field-input" id="p1-newname-first" placeholder="Vorname" />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Weitere Vornamen</label>
+                  <input className="field-input" id="p1-newname-middle" placeholder="optional" />
                 </div>
                 <div className="field-group">
                   <label className="field-label">Neuer Nachname</label>
-                  <input className="field-input" id="p1-newname-last" placeholder="Neuer Nachname" />
+                  <input className="field-input" id="p1-newname-last" placeholder="Nachname" />
                 </div>
               </div>
             </div>
@@ -3566,14 +3621,49 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               <span className="namechange-toggle-label" id="p2-nc-label">Partner:in hat den Namen geändert (z. B. nach Heirat)</span>
             </div>
             <div className="namechange-fields">
-              <div className="field-row" style={{marginTop: '8px'}}>
+              <div className="field-group" style={{marginTop: '8px'}}>
+                <label className="field-label">Anlass der Namensänderung</label>
+                <select className="field-input" id="p2-newname-occasion" defaultValue="">
+                  <option value="">Anlass wählen …</option>
+                  <optgroup label="Kindheit / Familie">
+                    <option value="adoption">Adoption</option>
+                    <option value="scheidung_eltern">Nach Scheidung der Eltern</option>
+                    <option value="wiederheirat_eltern">Wiederheirat eines Elternteils (Stiefname)</option>
+                    <option value="legitimation">Legitimation / Anerkennung</option>
+                  </optgroup>
+                  <optgroup label="Partnerschaft">
+                    <option value="heirat_partnername">Heirat · Partnername</option>
+                    <option value="heirat_doppelname">Heirat · Doppelname</option>
+                    <option value="rueckkehr_geburtsname">Rückkehr zum Geburtsnamen</option>
+                  </optgroup>
+                  <optgroup label="Behördlich / rechtlich">
+                    <option value="behoerdlich_frei">Freie behördliche Namensänderung</option>
+                    <option value="einbuergerung">Einbürgerung / Migration</option>
+                    <option value="transition">Geschlechtsangleichung / Transition</option>
+                  </optgroup>
+                  <optgroup label="Gelebter Name">
+                    <option value="spitzname">Spitzname / Kosename</option>
+                    <option value="kuenstlername">Künstlername / Pseudonym</option>
+                    <option value="kurzform">Kurzform des Vornamens</option>
+                  </optgroup>
+                  <optgroup label="Spirituell / religiös">
+                    <option value="taufname">Tauf- oder Firmname</option>
+                    <option value="ordensname">Ordens- / Klostername</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div className="field-row-3" style={{marginTop: '8px'}}>
                 <div className="field-group">
                   <label className="field-label">Neuer Vorname</label>
-                  <input className="field-input" id="p2-newname-first" placeholder="Neuer Vorname" />
+                  <input className="field-input" id="p2-newname-first" placeholder="Vorname" />
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Weitere Vornamen</label>
+                  <input className="field-input" id="p2-newname-middle" placeholder="optional" />
                 </div>
                 <div className="field-group">
                   <label className="field-label">Neuer Nachname</label>
-                  <input className="field-input" id="p2-newname-last" placeholder="Neuer Nachname" />
+                  <input className="field-input" id="p2-newname-last" placeholder="Nachname" />
                 </div>
               </div>
             </div>
