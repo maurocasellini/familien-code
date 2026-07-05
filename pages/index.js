@@ -689,6 +689,10 @@ export default function Home() {
               <input class="field-input" id="${p}-lastname" placeholder="Nachname bei Geburt" />
             </div>
           </div>
+          <div class="field-group">
+            <label class="field-label">Rufname (Alltagsname, optional)</label>
+            <input class="field-input" id="${p}-rufname" placeholder="Wie das Kind täglich genannt wird" />
+          </div>
           <div class="field-row-3">
             <div class="field-group">
               <label class="field-label">Geburtsdatum (TT.MM.JJJJ)</label>
@@ -707,6 +711,16 @@ export default function Home() {
               <input class="field-input" id="${p}-birthplace" placeholder="Stadt, Land" />
             </div>
           </div>
+          <div class="namechange-section">
+            <div class="namechange-toggle nc-toggle-child">
+              <div class="toggle-box"></div>
+              <span class="namechange-toggle-label">Kind hat den Namen geändert (z. B. Adoption, Scheidung der Eltern)</span>
+            </div>
+            <div class="namechange-fields">
+              <div id="${p}-nv-container"></div>
+              <button class="btn-add" type="button" data-add-nv="${p}">+ Weitere Namensversion</button>
+            </div>
+          </div>
         </div>`;
     }
 
@@ -715,6 +729,7 @@ export default function Home() {
       const container = document.getElementById('children-container');
       if (container) {
         container.insertAdjacentHTML('beforeend', childBlockHTML(state.childCount));
+        addNameVersion(`child${state.childCount}`);
       }
       state.childCount++;
       const btn = document.getElementById('btn-add-child');
@@ -1459,7 +1474,14 @@ ${monthLines}${transitionNote}`;
       // Namenswechsel
       const nc1 = nameChangeBlock('p1', 'PERSON 1');
       const nc2 = hasPair ? nameChangeBlock('p2', 'PERSON 2') : '';
-      const hasNameChange = nc1 || nc2;
+      let ncKids = '';
+      if (hasKids) {
+        let k = 0;
+        for (let i = 0; i < state.childCount; i++) {
+          if (document.getElementById(`child-block-${i}`)) { k++; ncKids += nameChangeBlock(`child${i}`, `KIND ${k}`); }
+        }
+      }
+      const hasNameChange = nc1 || nc2 || ncKids;
 
       let coupleBlock = '';
       if (hasPair) {
@@ -1878,7 +1900,7 @@ ${p2 ? personBlock(p2, 'PERSON 2') : ''}
 ${compatBlock}
 ${coupleBlock}
 ${kids}
-${nc1}${nc2}
+${nc1}${nc2}${ncKids}
 
 VORBERECHNETE NAMEN-NUMEROLOGIE (diese Zahlen sind korrekt — verwende sie exakt so):
 ${nameNumsText(nn1, 'PERSON 1')}
@@ -2708,7 +2730,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     addNameVersion('p1');
     addNameVersion('p2');
     const childContainer = document.getElementById('children-container');
-    if (childContainer) childContainer.innerHTML = childBlockHTML(0);
+    if (childContainer) { childContainer.innerHTML = childBlockHTML(0); addNameVersion('child0'); }
     applyDepthModules(); // Standard-Tiefe (15) auf Module abbilden + Readout fuellen
     updateNav();
 
@@ -2828,6 +2850,15 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       if (addNvBtn) addNameVersion(addNvBtn.dataset.addNv);
       const removeNvBtn = e.target.closest('[data-remove-nv]');
       if (removeNvBtn) removeNameVersion(removeNvBtn.dataset.removeNv, parseInt(removeNvBtn.dataset.nvIndex));
+      // Namensaenderung-Toggle bei Kindern (Personen nutzen inline onClick)
+      const ncToggleChild = e.target.closest('.nc-toggle-child');
+      if (ncToggleChild) {
+        const sec = ncToggleChild.closest('.namechange-section');
+        const box = ncToggleChild.querySelector('.toggle-box');
+        const f = sec && sec.querySelector('.namechange-fields');
+        if (box) box.classList.toggle('on');
+        if (f) f.classList.toggle('open');
+      }
       // Nav actions — use closest() so clicks on child elements (spans, icons) still register
       const btn = e.target.closest('button, [role="button"]');
       if (btn) {
