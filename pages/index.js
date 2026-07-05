@@ -9,6 +9,7 @@ export default function Home() {
       constellation: '',
       focus: '',
       childCount: 1,
+      nvSeq: {},                       // laufende Zaehler fuer Namensversionen je Person (p1/p2)
       lead: { name: '', email: '' },  // Lead-Gate
       ancestry: { include: false },    // Ahnenlinie (optional, Mutter + Vater)
       language: 'de',                  // Output-Sprache: 'de' | 'en' | 'pt' (UI bleibt Deutsch)
@@ -480,16 +481,112 @@ export default function Home() {
       taufname: 'Tauf- oder Firmname',
       ordensname: 'Ordens-, Kloster- oder spiritueller Name',
     };
+    // Optionsliste als HTML-String fuer die dynamisch eingefuegten Versionsbloecke
+    function nvOptionsHTML() {
+      return `
+        <option value="">Anlass wählen …</option>
+        <optgroup label="Kindheit / Familie">
+          <option value="adoption">Adoption</option>
+          <option value="scheidung_eltern">Nach Scheidung der Eltern</option>
+          <option value="wiederheirat_eltern">Wiederheirat eines Elternteils (Stiefname)</option>
+          <option value="legitimation">Legitimation / Anerkennung</option>
+        </optgroup>
+        <optgroup label="Partnerschaft">
+          <option value="heirat_partnername">Heirat · Partnername</option>
+          <option value="heirat_doppelname">Heirat · Doppelname</option>
+          <option value="rueckkehr_geburtsname">Rückkehr zum Geburtsnamen</option>
+        </optgroup>
+        <optgroup label="Behördlich / rechtlich">
+          <option value="behoerdlich_frei">Freie behördliche Namensänderung</option>
+          <option value="einbuergerung">Einbürgerung / Migration</option>
+          <option value="transition">Geschlechtsangleichung / Transition</option>
+        </optgroup>
+        <optgroup label="Gelebter Name">
+          <option value="spitzname">Spitzname / Kosename</option>
+          <option value="kuenstlername">Künstlername / Pseudonym</option>
+          <option value="kurzform">Kurzform des Vornamens</option>
+        </optgroup>
+        <optgroup label="Spirituell / religiös">
+          <option value="taufname">Tauf- oder Firmname</option>
+          <option value="ordensname">Ordens- / Klostername</option>
+        </optgroup>`;
+    }
+    function nameVersionHTML(prefix, idx) {
+      const id = `${prefix}-nv${idx}`;
+      return `
+        <div class="child-block nv-block" id="${id}-block">
+          <div class="child-block-header">
+            <div class="child-block-title nv-title">Weitere Namensversion</div>
+            <button class="btn-remove" type="button" data-remove-nv="${prefix}" data-nv-index="${idx}">×</button>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Anlass der Namensänderung</label>
+            <select class="field-input" id="${id}-occasion">${nvOptionsHTML()}</select>
+          </div>
+          <div class="field-row-3" style="margin-top: 8px;">
+            <div class="field-group">
+              <label class="field-label">Vorname</label>
+              <input class="field-input" id="${id}-first" placeholder="Vorname" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Weitere Vornamen</label>
+              <input class="field-input" id="${id}-middle" placeholder="optional" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Nachname</label>
+              <input class="field-input" id="${id}-last" placeholder="Nachname" />
+            </div>
+          </div>
+        </div>`;
+    }
+    function nvCurrentCount(prefix) {
+      const c = document.getElementById(`${prefix}-nv-container`);
+      return c ? c.querySelectorAll('.nv-block').length : 0;
+    }
+    function nvRenumber(prefix) {
+      const c = document.getElementById(`${prefix}-nv-container`);
+      if (!c) return;
+      c.querySelectorAll('.nv-title').forEach((t, i) => { t.textContent = `Namensversion ${i + 1}`; });
+    }
+    function nvUpdateAddBtn(prefix) {
+      const btn = document.getElementById(`${prefix}-add-nv`);
+      if (btn) btn.style.display = nvCurrentCount(prefix) >= 5 ? 'none' : '';
+    }
+    function addNameVersion(prefix) {
+      if (nvCurrentCount(prefix) >= 5) return;
+      const c = document.getElementById(`${prefix}-nv-container`);
+      if (!c) return;
+      state.nvSeq[prefix] = (state.nvSeq[prefix] || 0);
+      const idx = state.nvSeq[prefix]++;
+      c.insertAdjacentHTML('beforeend', nameVersionHTML(prefix, idx));
+      nvRenumber(prefix);
+      nvUpdateAddBtn(prefix);
+    }
+    function removeNameVersion(prefix, idx) {
+      const el = document.getElementById(`${prefix}-nv${idx}-block`);
+      if (el) el.remove();
+      nvRenumber(prefix);
+      nvUpdateAddBtn(prefix);
+    }
     function nameChangeBlock(prefix, label) {
-      const firstName = val(`${prefix}-newname-first`);
-      const middleName = val(`${prefix}-newname-middle`);
-      const lastName = val(`${prefix}-newname-last`);
-      if (!firstName && !middleName && !lastName) return '';
-      const occKey = val(`${prefix}-newname-occasion`);
-      const occLabel = NAME_OCCASIONS[occKey] || '';
-      const full = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
-      const n = nameNums(full);
-      return `\n${label} — NEUER NAME: ${full}${occLabel ? `\n- Anlass: ${occLabel}` : ''}\n- Neue Ausdruckszahl: ${n.expression}\n- Neue Persönlichkeitszahl: ${n.personality}\n- Neue Seelendrang-Zahl: ${n.soul}`;
+      const c = document.getElementById(`${prefix}-nv-container`);
+      if (!c) return '';
+      const blocks = [...c.querySelectorAll('.nv-block')];
+      let out = '';
+      let n = 0;
+      blocks.forEach((bl) => {
+        const id = bl.id.replace('-block', '');
+        const firstName = val(`${id}-first`);
+        const middleName = val(`${id}-middle`);
+        const lastName = val(`${id}-last`);
+        if (!firstName && !middleName && !lastName) return;
+        n++;
+        const occLabel = NAME_OCCASIONS[val(`${id}-occasion`)] || '';
+        const full = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
+        const nn = nameNums(full);
+        out += `\n${label} — NAMENSVERSION ${n}: ${full}${occLabel ? `\n- Anlass: ${occLabel}` : ''}\n- Ausdruckszahl: ${nn.expression}\n- Persönlichkeitszahl: ${nn.personality}\n- Seelendrang-Zahl: ${nn.soul}`;
+      });
+      return out;
     }
     function toggleField(inputId, toggleId) {
       const input = document.getElementById(inputId);
@@ -512,6 +609,10 @@ export default function Home() {
             <label class="field-label">Nachname (Geburtsname)</label>
             <input class="field-input" id="${prefix}-lastname" placeholder="Nachname bei Geburt" />
           </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Rufname (Alltagsname, optional)</label>
+          <input class="field-input" id="${prefix}-rufname" placeholder="Wie die Person täglich genannt wird" />
         </div>
         <div class="field-row-3">
           <div class="field-group">
@@ -609,6 +710,7 @@ export default function Home() {
       return {
         firstName: val(`${prefix}-firstname`),
         lastName: val(`${prefix}-lastname`),
+        rufname: val(`${prefix}-rufname`),
         birthName: val(`${prefix}-birthname`),
         birthDate: val(`${prefix}-birthdate`),
         birthTime: isOn(`${prefix}-notime`) ? 'unbekannt' : (val(`${prefix}-birthtime`) || 'unbekannt'),
@@ -1332,23 +1434,24 @@ ${monthLines}${transitionNote}`;
       const kids = hasKids ? getChildren().map((c, i) => personBlock(c, `KIND ${i + 1}`)).join('\n') : '';
 
       // Pre-compute name numerology (vollständig, Vorname, Nachname einzeln)
-      function calcNameNums(firstName, lastName) {
+      function calcNameNums(firstName, lastName, rufname) {
         if (!firstName) return null;
         const full = `${firstName} ${lastName}`.trim();
         const nFull = nameNums(full);
         const nVor = nameNums(firstName);
         const nNach = lastName ? nameNums(lastName) : null;
-        return { firstName, lastName, full, nFull, nVor, nNach };
+        const nRuf = rufname ? nameNums(rufname) : null;
+        return { firstName, lastName, rufname, full, nFull, nVor, nNach, nRuf };
       }
       function nameNumsText(nn, label) {
         if (!nn) return '';
         return `NAMEN-NUMEROLOGIE ${label}:
 - Vollständiger Name (${nn.full}): Seelendrang=${nn.nFull.soul}, Persönlichkeit=${nn.nFull.personality}, Ausdruck=${nn.nFull.expression}
-- Vorname (${nn.firstName}): Seelendrang=${nn.nVor.soul}, Persönlichkeit=${nn.nVor.personality}, Ausdruck=${nn.nVor.expression}${nn.nNach ? `\n- Nachname (${nn.lastName}): Seelendrang=${nn.nNach.soul}, Persönlichkeit=${nn.nNach.personality}, Ausdruck=${nn.nNach.expression}` : ''}`;
+- Vorname (${nn.firstName}): Seelendrang=${nn.nVor.soul}, Persönlichkeit=${nn.nVor.personality}, Ausdruck=${nn.nVor.expression}${nn.nNach ? `\n- Nachname (${nn.lastName}): Seelendrang=${nn.nNach.soul}, Persönlichkeit=${nn.nNach.personality}, Ausdruck=${nn.nNach.expression}` : ''}${nn.nRuf ? `\n- Rufname (${nn.rufname}): Seelendrang=${nn.nRuf.soul}, Persönlichkeit=${nn.nRuf.personality}, Ausdruck=${nn.nRuf.expression}` : ''}`;
       }
-      const nn1 = calcNameNums(p1.firstName, p1.lastName);
-      const nn2 = hasPair && p2 ? calcNameNums(p2.firstName, p2.lastName) : null;
-      const nnKids = hasKids ? getChildren().map(c => calcNameNums(c.firstName, c.lastName)) : [];
+      const nn1 = calcNameNums(p1.firstName, p1.lastName, p1.rufname);
+      const nn2 = hasPair && p2 ? calcNameNums(p2.firstName, p2.lastName, p2.rufname) : null;
+      const nnKids = hasKids ? getChildren().map(c => calcNameNums(c.firstName, c.lastName, c.rufname)) : [];
 
       const ancestryBlock = buildAncestryBlock();
       const hasAncestry = ancestryBlock !== '';
@@ -2509,6 +2612,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       state.lead = { name: '', email: '' };
       document.querySelectorAll('.field-input').forEach(el => { el.value = ''; el.disabled = false; });
       document.querySelectorAll('.toggle-box').forEach(el => el.classList.remove('on'));
+      // Namensversionen auf je eine leere zuruecksetzen
+      ['p1', 'p2'].forEach(pfx => { const c = document.getElementById(`${pfx}-nv-container`); if (c) { c.innerHTML = ''; state.nvSeq[pfx] = 0; addNameVersion(pfx); } });
       // Astrologie-Toggle (Individuell-Modus) ist standardmäßig aktiv -> visuell wieder einschalten
       const astroTog = document.getElementById('auftrag-astro-toggle');
       if (astroTog) { astroTog.classList.add('on'); const b = astroTog.querySelector('.toggle-box'); if (b) b.classList.add('on'); }
@@ -2560,6 +2665,9 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     if (p1form) p1form.innerHTML = personFormHTML('p1');
     const p2form = document.getElementById('person2-form');
     if (p2form) p2form.innerHTML = personFormHTML('p2');
+    // Je eine erste Namensversion in beide Container setzen
+    addNameVersion('p1');
+    addNameVersion('p2');
     const childContainer = document.getElementById('children-container');
     if (childContainer) childContainer.innerHTML = childBlockHTML(0);
     updateNav();
@@ -2673,6 +2781,11 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       // Remove child buttons
       const removeBtn = e.target.closest('[data-remove-child]');
       if (removeBtn) removeChild(parseInt(removeBtn.dataset.removeChild));
+      // Namensversionen: hinzufuegen / entfernen
+      const addNvBtn = e.target.closest('[data-add-nv]');
+      if (addNvBtn) addNameVersion(addNvBtn.dataset.addNv);
+      const removeNvBtn = e.target.closest('[data-remove-nv]');
+      if (removeNvBtn) removeNameVersion(removeNvBtn.dataset.removeNv, parseInt(removeNvBtn.dataset.nvIndex));
       // Nav actions — use closest() so clicks on child elements (spans, icons) still register
       const btn = e.target.closest('button, [role="button"]');
       if (btn) {
@@ -3538,51 +3651,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               <span className="namechange-toggle-label">Person hat den Namen geändert (z. B. nach Heirat)</span>
             </div>
             <div className="namechange-fields">
-              <div className="field-group" style={{marginTop: '8px'}}>
-                <label className="field-label">Anlass der Namensänderung</label>
-                <select className="field-input" id="p1-newname-occasion" defaultValue="">
-                  <option value="">Anlass wählen …</option>
-                  <optgroup label="Kindheit / Familie">
-                    <option value="adoption">Adoption</option>
-                    <option value="scheidung_eltern">Nach Scheidung der Eltern</option>
-                    <option value="wiederheirat_eltern">Wiederheirat eines Elternteils (Stiefname)</option>
-                    <option value="legitimation">Legitimation / Anerkennung</option>
-                  </optgroup>
-                  <optgroup label="Partnerschaft">
-                    <option value="heirat_partnername">Heirat · Partnername</option>
-                    <option value="heirat_doppelname">Heirat · Doppelname</option>
-                    <option value="rueckkehr_geburtsname">Rückkehr zum Geburtsnamen</option>
-                  </optgroup>
-                  <optgroup label="Behördlich / rechtlich">
-                    <option value="behoerdlich_frei">Freie behördliche Namensänderung</option>
-                    <option value="einbuergerung">Einbürgerung / Migration</option>
-                    <option value="transition">Geschlechtsangleichung / Transition</option>
-                  </optgroup>
-                  <optgroup label="Gelebter Name">
-                    <option value="spitzname">Spitzname / Kosename</option>
-                    <option value="kuenstlername">Künstlername / Pseudonym</option>
-                    <option value="kurzform">Kurzform des Vornamens</option>
-                  </optgroup>
-                  <optgroup label="Spirituell / religiös">
-                    <option value="taufname">Tauf- oder Firmname</option>
-                    <option value="ordensname">Ordens- / Klostername</option>
-                  </optgroup>
-                </select>
-              </div>
-              <div className="field-row-3" style={{marginTop: '8px'}}>
-                <div className="field-group">
-                  <label className="field-label">Neuer Vorname</label>
-                  <input className="field-input" id="p1-newname-first" placeholder="Vorname" />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Weitere Vornamen</label>
-                  <input className="field-input" id="p1-newname-middle" placeholder="optional" />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Neuer Nachname</label>
-                  <input className="field-input" id="p1-newname-last" placeholder="Nachname" />
-                </div>
-              </div>
+              <div id="p1-nv-container"></div>
+              <button className="btn-add" data-add-nv="p1" id="p1-add-nv" type="button">+ Weitere Namensversion</button>
             </div>
           </div>
           <div className="person-section" style={{ marginTop: '18px' }}>
@@ -3621,51 +3691,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               <span className="namechange-toggle-label" id="p2-nc-label">Partner:in hat den Namen geändert (z. B. nach Heirat)</span>
             </div>
             <div className="namechange-fields">
-              <div className="field-group" style={{marginTop: '8px'}}>
-                <label className="field-label">Anlass der Namensänderung</label>
-                <select className="field-input" id="p2-newname-occasion" defaultValue="">
-                  <option value="">Anlass wählen …</option>
-                  <optgroup label="Kindheit / Familie">
-                    <option value="adoption">Adoption</option>
-                    <option value="scheidung_eltern">Nach Scheidung der Eltern</option>
-                    <option value="wiederheirat_eltern">Wiederheirat eines Elternteils (Stiefname)</option>
-                    <option value="legitimation">Legitimation / Anerkennung</option>
-                  </optgroup>
-                  <optgroup label="Partnerschaft">
-                    <option value="heirat_partnername">Heirat · Partnername</option>
-                    <option value="heirat_doppelname">Heirat · Doppelname</option>
-                    <option value="rueckkehr_geburtsname">Rückkehr zum Geburtsnamen</option>
-                  </optgroup>
-                  <optgroup label="Behördlich / rechtlich">
-                    <option value="behoerdlich_frei">Freie behördliche Namensänderung</option>
-                    <option value="einbuergerung">Einbürgerung / Migration</option>
-                    <option value="transition">Geschlechtsangleichung / Transition</option>
-                  </optgroup>
-                  <optgroup label="Gelebter Name">
-                    <option value="spitzname">Spitzname / Kosename</option>
-                    <option value="kuenstlername">Künstlername / Pseudonym</option>
-                    <option value="kurzform">Kurzform des Vornamens</option>
-                  </optgroup>
-                  <optgroup label="Spirituell / religiös">
-                    <option value="taufname">Tauf- oder Firmname</option>
-                    <option value="ordensname">Ordens- / Klostername</option>
-                  </optgroup>
-                </select>
-              </div>
-              <div className="field-row-3" style={{marginTop: '8px'}}>
-                <div className="field-group">
-                  <label className="field-label">Neuer Vorname</label>
-                  <input className="field-input" id="p2-newname-first" placeholder="Vorname" />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Weitere Vornamen</label>
-                  <input className="field-input" id="p2-newname-middle" placeholder="optional" />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Neuer Nachname</label>
-                  <input className="field-input" id="p2-newname-last" placeholder="Nachname" />
-                </div>
-              </div>
+              <div id="p2-nv-container"></div>
+              <button className="btn-add" data-add-nv="p2" id="p2-add-nv" type="button">+ Weitere Namensversion</button>
             </div>
           </div>
           <div className="form-footer">
