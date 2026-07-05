@@ -725,7 +725,7 @@ export default function Home() {
     }
 
     function addChild() {
-      if (state.childCount >= 5) return;
+      if (state.childCount >= 9) return;
       const container = document.getElementById('children-container');
       if (container) {
         container.insertAdjacentHTML('beforeend', childBlockHTML(state.childCount));
@@ -733,7 +733,7 @@ export default function Home() {
       }
       state.childCount++;
       const btn = document.getElementById('btn-add-child');
-      if (btn) btn.style.display = state.childCount >= 5 ? 'none' : '';
+      if (btn) btn.style.display = state.childCount >= 9 ? 'none' : '';
     }
 
     function removeChild(i) {
@@ -3875,7 +3875,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
           <div className="form-page-header">
             <div className="form-eyebrow">Schritt 5 von 6 · Kinder</div>
             <h2 className="form-h2">Die Kinder</h2>
-            <p className="form-sub">Bis zu 5 Kinder können erfasst werden. Die Geburtszeit ist optional, aber wertvoll für die Analyse.</p>
+            <p className="form-sub">Bis zu 9 Kinder können erfasst werden. Die Geburtszeit ist optional, aber wertvoll für die Analyse.</p>
           </div>
           <div id="children-container"></div>
           <button className="btn-add" id="btn-add-child">+ Weiteres Kind hinzufügen</button>
