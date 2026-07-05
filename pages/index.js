@@ -171,6 +171,47 @@ export default function Home() {
       ['layer_o', 'Entscheidungsradar (Layer O)'],
     ];
 
+    // ── UMFANG-KOPPLUNG: Regler bestimmt, WELCHE Module enthalten sind ──
+    // Progressive Stufen. Mehr Seiten = mehr Module (Module bleiben in voller Tiefe).
+    // Fundament & Kern ist immer enthalten (nicht in dieser Liste).
+    const ALL_OPTIONAL_KEYS = SECTION_OPTIONS.map(o => o[0]);
+    function depthEnabledModules(depth) {
+      const t = [];
+      const add = (...ks) => ks.forEach(k => { if (!t.includes(k)) t.push(k); });
+      add('layer_o'); // Entscheidungsradar als Synthese ab Stufe 5
+      if (depth >= 10) add('pinnacles', 'layer_a', 'layer_b', 'pj');
+      if (depth >= 15) add('astro_tiefe', 'achsen', 'layer_g', 'layer_i');
+      if (depth >= 20) add('layer_h', 'layer_j', 'layer_m', 'jahresenergien', 'tag_heute');
+      if (depth >= 25) add('kosmische_zyklen', 'layer_k', 'layer_l');
+      return t;
+    }
+    // Liefert die abzuwaehlenden (= nicht enthaltenen) Module fuer eine Tiefe.
+    function depthToDisabled(depth, multiPerson) {
+      const enabled = depthEnabledModules(depth);
+      const disabled = ALL_OPTIONAL_KEYS.filter(k => !enabled.includes(k));
+      // Bei Mehrpersonen-Report bleibt das Persoenliche Jahr im Detail ausgeblendet
+      if (multiPerson && !disabled.includes('pj')) disabled.push('pj');
+      return disabled;
+    }
+    // Kurzlabels fuer die Anzeige der enthaltenen Module je Stufe
+    const MODULE_SHORT = {
+      pinnacles: 'Pinnacles & Challenges', layer_a: 'Erweiterte Zahlenebenen', layer_b: 'Essence Transit',
+      astro_tiefe: 'Astrologische Tiefe', achsen: 'Die vier Achsen', layer_g: 'Lebensaufgabe',
+      layer_h: 'Beruf & Berufung', layer_i: 'Beziehungen', layer_j: 'Geld & Wohlstand', layer_m: 'Schatten & Wachstum',
+      pj: 'Persönliches Jahr', jahresenergien: 'Jahresenergien', tag_heute: 'Persönlicher Tag',
+      kosmische_zyklen: 'Saturn & Jupiter', layer_k: 'Transite 12 Monate', layer_l: 'Lebenszyklen', layer_o: 'Entscheidungsradar',
+    };
+    function applyDepthModules() {
+      const multi = state.constellation === 'pair' || state.constellation === 'family' || state.constellation === 'solo_children';
+      state.disabledSections = depthToDisabled(state.depth, multi);
+      const readout = document.getElementById('depth-modules-readout');
+      if (readout) {
+        const enabled = depthEnabledModules(state.depth).filter(k => !state.disabledSections.includes(k));
+        const extras = enabled.map(k => MODULE_SHORT[k]).filter(Boolean);
+        readout.innerHTML = `<strong style="color: var(--ink)">Bei ${state.depth} Seiten enthalten:</strong> Fundament & Kern (Zentraler Code, Lebensweg, Namen-Numerologie, Herausforderung & Schlüssel, Essenz)${extras.length ? ' · ' + extras.join(' · ') : ''}.`;
+      }
+    }
+
     function updateThemeUI() {
       const counter = document.getElementById('theme-counter');
       if (counter) counter.textContent = state.themes.length + ' von ' + MAX_THEMES;
@@ -325,11 +366,7 @@ export default function Home() {
       if (id === 'vergleich') { updateThemeUI(); renderThemeChips(); }
       // Bei mehreren Personen: Persönliches Jahr ist nicht waehlbar (entfaellt komplett)
       if (id === 'depth') {
-        const multi = state.constellation === 'pair' || state.constellation === 'family' || state.constellation === 'solo_children';
-        const pjRow = document.querySelector('.toggle-row[data-section="pj"]');
-        if (pjRow) pjRow.style.display = multi ? 'none' : '';
-        if (multi && !state.disabledSections.includes('pj')) state.disabledSections.push('pj');
-        if (!multi) { const i = state.disabledSections.indexOf('pj'); if (i >= 0) state.disabledSections.splice(i, 1); }
+        applyDepthModules(); // Regler -> Module + Readout aktualisieren
       }
       updateNav();
     }
@@ -1403,6 +1440,8 @@ ${monthLines}${transitionNote}`;
       const hasPair = state.constellation === 'pair' || state.constellation === 'family';
       const hasKids = state.constellation === 'family' || state.constellation === 'solo_children';
       const multiPerson = hasPair || hasKids; // Paar, Familie, Alleinerziehend: kein Persönliches Jahr, Fokus auf Gemeinsames
+      // Umfang-Regler bestimmt endgueltig, welche Module enthalten sind
+      state.disabledSections = depthToDisabled(state.depth, multiPerson);
       const p1 = getPerson('p1'), p2 = hasPair ? getPerson('p2') : null;
       // Alle Mitglieder (für kompakte Sektionen bei Familie/Paar: Namen-Numerologie, Persönlicher Tag, Jahresenergien)
       const memberNames = [p1.firstName, hasPair && p2 ? p2.firstName : null, ...(hasKids ? getChildren().map(c => c.firstName) : [])].filter(Boolean);
@@ -2670,6 +2709,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     addNameVersion('p2');
     const childContainer = document.getElementById('children-container');
     if (childContainer) childContainer.innerHTML = childBlockHTML(0);
+    applyDepthModules(); // Standard-Tiefe (15) auf Module abbilden + Readout fuellen
     updateNav();
 
     // Lead gate input listeners
@@ -2684,12 +2724,14 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const metaEl = document.getElementById('depth-meta');
         if (metaEl) {
           let txt;
-          if (v <= 8) txt = 'Kompakt · ca. 300 Wörter pro Modul · knapp und auf den Punkt';
-          else if (v <= 18) txt = 'Mittel · ca. 900 Wörter pro Modul · solide ausgeführt';
-          else if (v <= 28) txt = 'Tief · ca. 1500 Wörter pro Modul · ausführlich mit Beispielen';
-          else txt = 'Profi · ca. 2400 Wörter pro Modul · maximale Tiefe pro Modul';
+          if (v <= 5) txt = 'Kompakt · nur Fundament & Kern + Entscheidungsradar';
+          else if (v <= 10) txt = 'Grundlagen · Fundament & Kern + Numerologische Tiefe + Persönliches Jahr';
+          else if (v <= 15) txt = 'Mittel · zusätzlich Astrologisches Geburtsbild, Lebensaufgabe & Beziehungen';
+          else if (v <= 20) txt = 'Ausführlich · zusätzlich Beruf, Geld, Schatten & Jahresenergien';
+          else txt = 'Vollständig · alle Module in voller Tiefe';
           metaEl.textContent = txt;
         }
+        applyDepthModules();
       }
     });
     document.addEventListener('keydown', (e) => {
@@ -3896,36 +3938,10 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               <span>25 · Tief</span>
               <span>40 · Profi</span>
             </div>
-            <div className="depth-meta" id="depth-meta">Mittel · ca. 900 Wörter pro Modul · solide ausgeführt</div>
+            <div className="depth-meta" id="depth-meta">Mittel · zusätzlich Astrologisches Geburtsbild, Lebensaufgabe &amp; Beziehungen</div>
           </div>
-          <div className="toggle-row" id="sections-include-toggle" style={{ marginTop: '28px', padding: '14px 18px', background: 'var(--gold-faint)', border: '1px solid var(--gold-pale)', borderRadius: '14px' }}>
-            <span className="toggle-box"></span>
-            <span className="toggle-label" style={{ marginLeft: '12px' }}>Sektionen anpassen (optional) — einzelne Kapitel abwählen</span>
-          </div>
-          <div id="sections-fields" className="hidden" style={{ marginTop: '16px' }}>
-            <p className="form-sub" style={{ marginBottom: '12px' }}>Standardmässig ist alles aktiv. Schalte gezielt ab, was für diese:n Klient:in nicht gebraucht wird.</p>
-            <div style={{ marginBottom: '22px', padding: '12px 16px', background: 'var(--gold-faint)', borderRadius: '10px', fontSize: '13px', color: 'var(--muted)', lineHeight: 1.5 }}>
-              <strong style={{ color: 'var(--ink)' }}>Immer enthalten (Fundament &amp; Kern):</strong> Zentraler Code, Persönlicher Lebensweg, Namen-Numerologie, Herausforderung &amp; Schlüssel, Essenz.
-            </div>
-            {[
-              ['Numerologische Tiefe', [['pinnacles', 'Pinnacles & Challenges'], ['layer_a', 'Erweiterte Zahlenebenen (Layer A)'], ['layer_b', 'Essence Transit (Layer B)']]],
-              ['Astrologisches Geburtsbild', [['astro_tiefe', 'Astrologische Tiefe (Layer C)'], ['achsen', 'Die vier Achsen (AC/DC/MC/IC)']]],
-              ['Lebensthemen', [['layer_g', 'Lebensaufgabe & Seelenauftrag (G)'], ['layer_h', 'Beruf & Berufung (H)'], ['layer_i', 'Beziehungen & Partnerschaft (I)'], ['layer_j', 'Geld & Wohlstand (J)'], ['layer_m', 'Schatten & Wachstum (M)']]],
-              ['Timing & Zyklen', [['pj', 'Persönliches Jahr (aktuell & nächstes)'], ['jahresenergien', 'Jahresenergien (6 Jahre)'], ['tag_heute', 'Persönlicher Tag am Analysedatum (E)'], ['kosmische_zyklen', 'Saturn & Jupiter Zyklen (F)'], ['layer_k', 'Aktuelle Transite, 12 Monate (K)'], ['layer_l', 'Lebenszyklen & Wendepunkte (L)']]],
-              ['Synthese', [['layer_o', 'Entscheidungsradar (O) — läuft immer zuletzt']]],
-            ].map(([groupTitle, items]) => (
-              <div key={groupTitle} style={{ marginBottom: '20px' }}>
-                <div className="form-eyebrow" style={{ marginBottom: '10px' }}>{groupTitle}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px' }}>
-                  {items.map(([key, label]) => (
-                    <div className="toggle-row" data-section={key} key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: 0 }}>
-                      <span className="toggle-box on"></span>
-                      <span className="toggle-label">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div id="depth-modules-readout" style={{ marginTop: '28px', padding: '16px 20px', background: 'var(--gold-faint)', border: '1px solid var(--gold-pale)', borderRadius: '14px', fontSize: '13px', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <strong style={{ color: 'var(--ink)' }}>Immer enthalten (Fundament &amp; Kern):</strong> Zentraler Code, Persönlicher Lebensweg, Namen-Numerologie, Herausforderung &amp; Schlüssel, Essenz.
           </div>
           <div className="form-footer">
             <button className="btn-back">← Zurück</button>
