@@ -783,6 +783,7 @@ export default function Home() {
       return {
         firstName: val(`anc-${prefix}-first`),
         birthName: val(`anc-${prefix}-birth`),     // Geburtsname / Mädchenname
+        rufname: val(`anc-${prefix}-rufname`),     // Rufname / Alltagsname
         birthDate: val(`anc-${prefix}-date`),
         birthPlace: val(`anc-${prefix}-place`),
       };
@@ -800,19 +801,22 @@ export default function Home() {
       if (!a.firstName && !a.birthName && !a.birthDate) return '';
       const fullForNums = `${a.firstName || ''} ${a.birthName || ''}`.trim();
       const nn = fullForNums ? nameNums(fullForNums) : null;
+      const nRuf = a.rufname ? nameNums(a.rufname) : null;
       const lz = a.birthDate ? lifeNum(a.birthDate) : 'n/a';
       const py = a.birthDate ? persYear(a.birthDate) : 'n/a';
       const zd = a.birthDate ? zodiac(a.birthDate) : 'unbekannt';
       return `
 ${label}:
 - Vorname: ${a.firstName || '—'}
-- Geburtsname: ${a.birthName || '—'}
+- Geburtsname: ${a.birthName || '—'}${a.rufname ? `
+- Rufname: ${a.rufname}` : ''}
 - Geburtsdatum: ${a.birthDate || '—'}
 - Geburtsort: ${a.birthPlace || '—'}
 - Lebenszahl: ${lz}
 - Persönliches Jahr: ${py}
 - Sternzeichen: ${zd}${nn ? `
-- Namens-Numerologie (Vorname + Geburtsname): Seelendrang=${nn.soul}, Persönlichkeit=${nn.personality}, Ausdruck=${nn.expression}` : ''}`;
+- Namens-Numerologie (Vorname + Geburtsname): Seelendrang=${nn.soul}, Persönlichkeit=${nn.personality}, Ausdruck=${nn.expression}` : ''}${nRuf ? `
+- Rufname-Numerologie (${a.rufname}): Seelendrang=${nRuf.soul}, Persönlichkeit=${nRuf.personality}, Ausdruck=${nRuf.expression}` : ''}`;
     }
     function buildAncestryBlock() {
       const a = getAncestry();
@@ -3912,6 +3916,10 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
                 <input className="field-input" id="anc-mother-birth" type="text" placeholder="Der numerologisch reinste Name der Mutterlinie" />
               </div>
               <div className="field-group">
+                <label className="field-label">Rufname (Alltagsname, optional)</label>
+                <input className="field-input" id="anc-mother-rufname" type="text" placeholder="Wie die Mutter täglich genannt wird/wurde" />
+              </div>
+              <div className="field-group">
                 <label className="field-label">Geburtsdatum</label>
                 <input className="field-input" id="anc-mother-date" type="text" placeholder="TT.MM.JJJJ" />
               </div>
@@ -3930,6 +3938,10 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               <div className="field-group">
                 <label className="field-label">Geburtsname</label>
                 <input className="field-input" id="anc-father-birth" type="text" placeholder="Nachname bei Geburt" />
+              </div>
+              <div className="field-group">
+                <label className="field-label">Rufname (Alltagsname, optional)</label>
+                <input className="field-input" id="anc-father-rufname" type="text" placeholder="Wie der Vater täglich genannt wird/wurde" />
               </div>
               <div className="field-group">
                 <label className="field-label">Geburtsdatum</label>
