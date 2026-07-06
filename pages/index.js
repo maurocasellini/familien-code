@@ -1576,7 +1576,25 @@ ${monthLines}${transitionNote}`;
         en: 'You are an experienced astrologer and numerologist. Create a deep, personal analysis in English, addressing the reader directly (you).',
         pt: 'És um astrólogo e numerólogo experiente. Cria uma análise profunda e pessoal em português, falando diretamente com a pessoa (tu).',
       };
-      const intro = intros[state.language] || intros.de;
+      // ── STIMME & STIL: menschlich, geerdet, ehrlich — die typischen KI-Muster verbieten ──
+      const stilGuides = {
+        de: `STIMME & STIL (sehr wichtig, gilt fuer den GESAMTEN Text): Schreibe wie eine erfahrene, hellsichtige Beraterin, die den Menschen vor sich sieht und frei aus dem Moment spricht, nicht wie ein Ratgeber-Artikel. Sprich direkt, klar und mit Ueberzeugung. Nenne die Dinge beim Namen.
+VERBOTEN (diese Muster lassen Text kuenstlich und nach KI klingen, vermeide sie konsequent):
+- Keine Wenn-dann-Absicherungen und keine Konjunktive der Unverbindlichkeit: kein "koennte", "vielleicht", "moeglicherweise", "unter Umstaenden", "es kann sein, dass", "tendenziell", "in gewisser Weise", "womoeglich". Wenn du etwas siehst, sag es direkt.
+- Keine Beidseitig-Balance-Saetze wie "das kann sowohl Staerke als auch Schwaeche sein". Bezieh Position.
+- Keine Floskel-Ueberleitungen und Fuellwoerter: kein "letztendlich", "zusammenfassend", "es ist wichtig zu verstehen/beachten", "in der Tat", "nicht zuletzt", "gewissermassen", "im Grunde", "sozusagen".
+- Keine Meta-Saetze ueber die Analyse selbst ("diese Sektion zeigt", "wie bereits erwaehnt", "im Folgenden").
+- Kein KI-Ebenmass: nicht mehrere gleich lange, gleich gebaute Saetze hintereinander, keine symmetrischen Dreier-Aufzaehlungen als Reflex.
+GEBOTEN: Kurze, klare Aussagesaetze. Trau dich, einen einzelnen starken Satz allein stehen zu lassen. Wechsle den Rhythmus, mal knapp, mal ausholend. Konkrete Bilder statt abstrakter Begriffe. Sei ehrlich beim Schwierigen: benenne das Heikle klar und warm, ohne es weichzuspuelen und ohne Drama. Bleib immer nah an den echten Zahlen und Daten dieser Person, keine allgemeingueltigen Wahrheiten, keine Kalenderspruch-Weisheiten. Ermutigend, aber nie beschoenigend.`,
+        en: `VOICE & STYLE (very important, applies to the ENTIRE text): Write like an experienced, clear-seeing counsellor who sees the person in front of her and speaks freely, not like an advice article. Be direct, plain and convinced. Name things directly.
+FORBIDDEN (these patterns make text sound artificial and AI-like): no hedging conditionals ("could", "maybe", "possibly", "it may be that", "tends to", "in a way"); no both-sides balance sentences ("both a strength and a weakness") — take a position; no filler transitions ("ultimately", "in summary", "it's important to understand", "indeed", "essentially", "so to speak"); no meta-sentences about the analysis itself; no AI evenness (avoid several equally long, equally built sentences in a row and reflexive rule-of-three lists).
+REQUIRED: short, clear declarative sentences; let a single strong sentence stand alone; vary the rhythm; concrete images over abstractions; be honest about the difficult, name it clearly and warmly without sugar-coating; stay close to this person's real numbers and data, no generic truths. Encouraging, never glossing over.`,
+        pt: `VOZ E ESTILO (muito importante, para TODO o texto): Escreve como uma conselheira experiente e clarividente que ve a pessoa a sua frente e fala livremente, nao como um artigo de conselhos. Fala de forma direta, clara e convicta. Nomeia as coisas diretamente.
+PROIBIDO: sem condicionais de protecao ("poderia", "talvez", "possivelmente", "tende a"); sem frases de equilibrio dos dois lados; sem transicoes de enchimento ("no final", "em resumo", "e importante entender", "de facto"); sem meta-frases sobre a analise; sem uniformidade de IA (evita varias frases igualmente longas e listas de tres reflexivas).
+EXIGIDO: frases curtas e claras; deixa uma frase forte sozinha; varia o ritmo; imagens concretas; se honesta com o dificil, sem adocar; fica perto dos numeros reais desta pessoa. Encorajadora, nunca a disfarcar.`,
+      };
+      const stilGuide = stilGuides[state.language] || stilGuides.de;
+      const intro = (intros[state.language] || intros.de) + '\n\n' + stilGuide;
 
       // ── HUMAN DESIGN INDIVIDUELL: freie Frage durch den BodyGraph ──
       if (state.mode === 'humandesign_individual') {
