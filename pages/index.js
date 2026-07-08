@@ -188,9 +188,9 @@ export default function Home() {
     // Liefert die abzuwaehlenden (= nicht enthaltenen) Module fuer eine Tiefe.
     function depthToDisabled(depth, multiPerson) {
       const enabled = depthEnabledModules(depth);
-      const disabled = ALL_OPTIONAL_KEYS.filter(k => !enabled.includes(k));
+      let disabled = ALL_OPTIONAL_KEYS.filter(k => !enabled.includes(k));
       // Bei Mehrpersonen-Report bleibt das Persoenliche Jahr im Detail ausgeblendet
-      if (multiPerson && !disabled.includes('pj')) disabled.push('pj');
+      if (multiPerson) { disabled = ALL_OPTIONAL_KEYS.filter(k => !['jahresenergien','layer_o'].includes(k)); }
       return disabled;
     }
     // Kurzlabels fuer die Anzeige der enthaltenen Module je Stufe
@@ -1968,11 +1968,11 @@ ${multiPerson ? `\n🔗 FOKUS BEI MEHREREN PERSONEN (Paar/Familie/Alleinerziehen
 
 Erstelle folgende Sektionen mit erheblicher Tiefe. ZIELLAENGE: durchschnittlich 1500 Wörter pro Sektion (Kurz-Sektionen wie Essenz ausgenommen). Schreibe wie eine erfahrene Beraterin mit 20 Jahren Erfahrung, die Zeit hat. Keine generischen Phrasen, jede Aussage muss an konkrete Daten der Person ankoppeln.${orderBlock}${axisNote}
 
-${hasPair ? `🔑 MASTER-REGEL FÜR PAAR/FAMILIE: Bei den individuellen Sektionen (Lebensweg, Pinnacles, Layer A/B/C/E/F, Namens-Numerologie) MUSST DU EXPLIZIT FÜR JEDE EINZELNE PERSON eine eigene Sub-Sektion schreiben. NICHT NUR Person 1 detailliert beschreiben, dann Person 2 in einem Satz abhaken. Beide (bzw. alle) Personen werden GLEICHWERTIG, GLEICH LANG, GLEICH DETAILLIERT behandelt. Pro Sektion separate Unterüberschriften für ${p1.firstName || 'Person 1'}${hasPair && p2?.firstName ? ' und ' + p2.firstName : ''}${hasKids ? ' und jedes Kind' : ''}. Halte die individuellen Numerologie-Portraits dabei eher kompakt und gib der gemeinsamen Dynamik das groessere Gewicht.\n\n` : ''}1. Der zentrale Code, mindestens 1200 Wörter${hasPair ? ` — jede Person bekommt einen eigenen Hauptcode-Block. Schreibe einen Abschnitt fuer ${p1.firstName || 'Person 1'}, dann einen für ${p2?.firstName || 'Person 2'}. Beide mit [ZAHL:X] und ausführlicher Erklärung ihrer Lebenszahl, Mission, Schatten und Geschenke. Mindestens 600 Wörter pro Person` : ''}, mit [ZAHL:X] für den Haupt-Code, dann ausführliche Erklärung des Lebensthemas, der Mission, der Schatten und Geschenke.
-${hasPair ? `2. Schlüsseldaten des Paares, mindestens 1500 Wörter, mit [KARTEN-GRID-START/END] für Kennenlernen & Hochzeit, dann [PERSON-GRID-START/END] für beide. Erwähne den Beziehungscode (Kompatibilitätszahl) tiefgehend.
+${hasPair ? `🔑 MASTER-REGEL FÜR PAAR/FAMILIE: Bei den individuellen Sektionen (Lebensweg, Pinnacles, Layer A/B/C/E/F, Namens-Numerologie) MUSST DU EXPLIZIT FÜR JEDE EINZELNE PERSON eine eigene Sub-Sektion schreiben. NICHT NUR Person 1 detailliert beschreiben, dann Person 2 in einem Satz abhaken. Beide (bzw. alle) Personen werden GLEICHWERTIG, GLEICH LANG, GLEICH DETAILLIERT behandelt. Pro Sektion separate Unterüberschriften für ${p1.firstName || 'Person 1'}${hasPair && p2?.firstName ? ' und ' + p2.firstName : ''}${hasKids ? ' und jedes Kind' : ''}. Halte die individuellen Numerologie-Portraits dabei eher kompakt und gib der gemeinsamen Dynamik das groessere Gewicht.\n\n` : ''}1. ${multiPerson ? `Die Menschen auf einen Blick — KOMPAKTE Snapshots: pro Mitglied (${memberNamesStr}) ein knapper Steckbrief mit [ZAHL:X] (Lebenszahl) und den drei Kernzahlen (Seelendrang, Persönlichkeit, Ausdruck), dazu 3 bis 5 Sätze zum Lebensthema. KEINE langen Einzel-Essays, je ca. 120 bis 180 Wörter pro Person. Dies ist eine ${state.constellation === 'pair' ? 'Paaranalyse' : 'Familienanalyse'}, keine Einzelanalyse — das Gewicht liegt auf den folgenden gemeinsamen Sektionen.` : `Der zentrale Code, mindestens 1200 Wörter, mit [ZAHL:X] für den Haupt-Code, dann ausführliche Erklärung des Lebensthemas, der Mission, der Schatten und Geschenke.`}
+${state.constellation === 'pair' ? `2. Schlüsseldaten des Paares, mindestens 1500 Wörter, mit [KARTEN-GRID-START/END] für Kennenlernen & Hochzeit, dann [PERSON-GRID-START/END] für beide. Erwähne den Beziehungscode (Kompatibilitätszahl) tiefgehend.
 ${bezSek3}
 4. Astrologische Kernverbindungen, mindestens 1500 Wörter, mit [ASTRO-START/END], inklusive Synastrie-Aspekte.
-` : `2. Dein persönlicher Lebensweg, mindestens 1500 Wörter, ausführlicher Fliesstext mit den Lebensphasen, Mustern, Talenten, Schattenseiten.
+` : hasKids ? `` : `2. Dein persönlicher Lebensweg, mindestens 1500 Wörter, ausführlicher Fliesstext mit den Lebensphasen, Mustern, Talenten, Schattenseiten.
 3. Deine Namen-Energie, mindestens 1500 Wörter, mit [NAMEN-GRID-START/END], plus tiefe Interpretation jedes Aspekts (Seelendrang, Persönlichkeit, Ausdruck).
 `}
 ${hasKids ? `5. Die Kinder, mindestens 1500 Wörter, mit [PERSON-GRID-START/END] pro Kind, ausführlicher Fliesstext pro Kind mit Lebensaufgabe, Begabungen, Erziehungshinweisen.
@@ -2118,7 +2118,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     // Themen bzw. die individuelle Frage). full=true fuer den Bildschirm (mit Themen/
     // Frage), full=false fuer den kompakten Word-Titel.
     function reportDescriptor(full = true) {
-      const cLabels = { solo: 'Einzelanalyse', pair: 'Personenvergleich', family: 'Familie', solo_children: 'Alleinerziehend mit Kind(ern)' };
+      const cLabels = { solo: 'Einzelanalyse', pair: 'Paaranalyse', family: 'Familienanalyse', solo_children: 'Familienanalyse · Alleinerziehend' };
       if (state.mode === 'kurzprofil') return 'Kurzprofil · Einzelperson';
       if (state.mode === 'individual' || state.mode === 'humandesign_individual') {
         const preset = AUFTRAG_PRESETS[state.auftragPreset];
