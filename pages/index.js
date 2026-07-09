@@ -288,59 +288,86 @@ export default function Home() {
     const THEMEN = {
       gesamtbild: {
         label: 'Das grosse Gesamtbild', icon: '◎', desc: 'Alle Dimensionen · vollständige Tiefenanalyse',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['solo', 'family'], depth: 25,
+        titel: 'Deine Seelenlandschaft', dateiPrefix: 'Seelenlandschaft',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo', 'family'], depth: 40,
+        // Kein module-Filter, kein schlanker Kern: die grosse Gesamtanalyse zeigt alles.
         richtung: 'SCHWERPUNKT GESAMTBILD: Dies ist die vollstaendige Tiefenanalyse ueber alle Dimensionen. Webe Numerologie, Astrologie und Lebenszyklen zu einem stimmigen, umfassenden Gesamtbild. Kein Aspekt wird ausgespart, alle Ebenen werden verbunden.',
         hdRichtung: 'SCHWERPUNKT GESAMTBILD: Zeichne den vollstaendigen BodyGraph in ganzer Tiefe, alle Ebenen von Typ bis Variablen ausgewogen.',
       },
       beziehung: {
         label: 'Beziehungsdynamik', icon: '♡', desc: 'Verbindung, Resonanz & Partnerschaft',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['pair'], depth: 16,
-        richtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Richte die gesamte Analyse auf die Beziehungsachse aus, also Resonanz, Anziehung, Reibung, Naehe und Freiraum sowie die gemeinsame Aufgabe der beiden. Individuelle Lebensweg-, Berufs- und reine Jahresprognose-Kapitel bleiben bewusst schlank oder entfallen. Alles dient dem Verstehen der Verbindung.',
-        hdRichtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Deute das Zusammenspiel der beiden BodyGraphs, wo Energien sich anziehen, ergaenzen und reiben.',
+        titel: 'Eure Beziehungsdynamik', dateiPrefix: 'Beziehungsdynamik',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['pair'], depth: 15,
+        richtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Richte den GESAMTEN Report ausschliesslich auf die Verbindung der beiden aus, also Resonanz, Anziehung, Reibung, Naehe und Freiraum sowie die gemeinsame Aufgabe. Halte die individuellen Portraits sehr kompakt. KEINE ausfuehrlichen Einzel-Lebenswege, KEINE Berufs-, Jahresprognose- oder Kinder-Kapitel. Alles dient dem Verstehen genau DIESER Beziehung.',
+        hdRichtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Deute ausschliesslich das Zusammenspiel der beiden BodyGraphs, wo Energien sich anziehen, ergaenzen und reiben.',
       },
       lebensweg: {
-        label: 'Persönlicher Lebensweg', icon: '◈', desc: 'Seele, Bestimmung & innere Kraft',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 16,
-        richtung: 'SCHWERPUNKT PERSOENLICHER LEBENSWEG: Fokussiere auf Seele, Bestimmung, Kernzahlen, Seelenaufgabe, innere Kraft und Wachstum dieser Person. Gehe in die Tiefe bei Lebenszahl, Seelendrang, Mondknoten und Lebensthema. Beziehungs- und reine Jahresprognose-Teile bleiben Randthemen.',
-        hdRichtung: 'SCHWERPUNKT LEBENSWEG: Betone Inkarnationskreuz, Profil und Autoritaet als Weg der Bestimmung dieser Person.',
+        label: 'Persönlicher Lebensweg', icon: '◈', desc: 'Lebensphasen, Talente, Muster & Reifung',
+        titel: 'Dein persönlicher Lebensweg', dateiPrefix: 'Lebensweg',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 15,
+        module: ['pinnacles', 'layer_a', 'astro_tiefe', 'achsen', 'layer_m', 'layer_l', 'layer_o'],
+        kernSektionen: 'der biografische Bogen des Lebens (Lebensphasen, Pinnacles & Reifezahl, Lebenszyklen & Wendepunkte), die Talente, die wiederkehrenden Muster und die Schattenseiten sowie das Wachstum daraus',
+        richtung: 'SCHWERPUNKT LEBENSWEG (ABGRENZUNG): Dies ist die Biografie der Seele als WEG, nicht das WARUM. Zeichne die Lebensphasen, Pinnacles, die Reifezahl, wiederkehrende Muster, Talente und Schatten und wie die Person darin reift. Das tiefere Sinn-/Missions-Warum gehoert NICHT hierher (eigenes Thema Seelenmission). Keine Jahresprognose Monat-fuer-Monat, keine Berufs-Detailanalyse.',
+        hdRichtung: 'SCHWERPUNKT LEBENSWEG: Betone Profil, die Lebensbogen-Linien und die Reifung ueber die Lebensphasen.',
+      },
+      seelenmission: {
+        label: 'Die Seelenmission', icon: '✶', desc: 'Warum du hier bist · Bestimmung & Seelenauftrag',
+        titel: 'Deine Seelenmission', dateiPrefix: 'Seelenmission',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 15,
+        module: ['layer_a', 'astro_tiefe', 'achsen', 'layer_g', 'layer_m', 'layer_o'],
+        kernSektionen: 'die Seelenaufgabe & der Seelenauftrag (Layer G), die Meisterzahlen, der Mondknoten (Nord/Sued als Weg der Seele), das Lebensthema und die tiefere Bestimmung — das WARUM des Hierseins',
+        richtung: 'SCHWERPUNKT SEELENMISSION (ABGRENZUNG): Dies ist das tiefe WARUM, nicht der biografische Weg. Fokussiere kompromisslos auf Seelenaufgabe, Bestimmung, Meisterzahlen, Nord- und Suedknoten und den groesseren Sinn: wofuer diese Seele hier ist, was sie loesen und geben will. Keine Lebensphasen-Chronik, kein Timing, kein Beruf. Kontemplativ, tief, sinnstiftend.',
+        hdRichtung: 'SCHWERPUNKT SEELENMISSION: Stelle das Inkarnationskreuz als das grosse Lebensthema ins absolute Zentrum, getragen von den Sonnen- und Erd-Toren, plus Profil als Rolle der Seele.',
       },
       kinder: {
         label: 'Die Kinder', icon: '✧', desc: 'Seelenbild & Energien der Kinder',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['solo_children', 'family'], depth: 16,
-        richtung: 'SCHWERPUNKT DIE KINDER: Zeichne fuer jedes Kind ein liebevolles Seelenbild, sein Wesen, seine Energien, Beduerfnisse und Talente, und wie die Eltern es staerken und begleiten koennen. Schreibe aus der begleitenden Elternperspektive. Kein Erwachsenen-Karriere- oder Partnerschaftsteil.',
+        titel: 'Das Seelenbild deiner Kinder', dateiPrefix: 'Kinder',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo_children', 'family'], depth: 15,
+        richtung: 'SCHWERPUNKT DIE KINDER: Zeichne fuer jedes Kind ein liebevolles Seelenbild, sein Wesen, seine Energien, Beduerfnisse und Talente, und wie die Eltern es staerken und begleiten koennen. Schreibe aus der begleitenden Elternperspektive. Kein Erwachsenen-Karriere- oder Partnerschaftsteil, keine Jahresprognose.',
         hdRichtung: 'SCHWERPUNKT DIE KINDER: Deute den BodyGraph des Kindes als Anleitung fuer die Eltern, wie sie es typgerecht begleiten.',
       },
       jahresausblick: {
         label: 'Jahresausblick', icon: '◬', desc: 'Energien & Pinnacles für die kommenden Jahre',
+        titel: 'Dein Jahresausblick', dateiPrefix: 'Jahresausblick',
         systems: ['numerologie'], konstellationen: ['solo'], depth: 15,
-        richtung: 'SCHWERPUNKT JAHRESAUSBLICK: Der Report ist zeitlich und prognostisch. Fuehre durch das aktuelle und kommende Persoenliche Jahr, Monat fuer Monat, mit Pinnacles, Herausforderungen, Chancen und guenstigen Zeitfenstern. Der statische Charakter-Teil bleibt knapp, das Timing steht im Zentrum.',
+        module: ['pinnacles', 'pj', 'jahresenergien'],
+        kernSektionen: 'das aktuelle Persoenliche Jahr im Detail (Monat fuer Monat, Quartale, Schwellenmonate), das naechste Persoenliche Jahr, die Jahresenergien ueber sechs Jahre und die Pinnacles & Challenges',
+        richtung: 'SCHWERPUNKT JAHRESAUSBLICK (ABGRENZUNG): Rein zeitlich und prognostisch. NUR das Timing: aktuelles und kommendes Persoenliches Jahr Monat fuer Monat, Jahresenergien, Pinnacles, guenstige Fenster. KEINE ausfuehrliche Charakter-, Namen- oder Seelenanalyse. Der statische Teil ist nur ein kurzer Einstieg.',
       },
       beruf: {
         label: 'Beruf & Berufung', icon: '◈', desc: 'Talente, Aufgabe & richtige Umgebung',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 16,
-        richtung: 'SCHWERPUNKT BERUF & BERUFUNG: Richte alles auf Talente, Aufgabe, Arbeitsweise, passende Umfelder und das Timing beruflicher Schritte aus. Nutze Ausdruckszahl, Lebensaufgabe (MC), Staerken und die aktuellen Zyklen. Beziehungs- und Familienthemen bleiben aussen vor.',
+        titel: 'Beruf & Berufung', dateiPrefix: 'Beruf',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 15,
+        module: ['layer_a', 'achsen', 'layer_h', 'pj', 'layer_o'],
+        kernSektionen: 'Beruf & Berufung (Layer H), deine Talente und dein Ausdruck, die passende Arbeitsumgebung und das aktuelle Timing fuer berufliche Schritte',
+        richtung: 'SCHWERPUNKT BERUF & BERUFUNG (ABGRENZUNG): Nur die berufliche Achse: Talente, Aufgabe, Arbeitsweise, passende Umfelder, Timing beruflicher Schritte. Nutze Ausdruckszahl und die Lebensaufgabe (MC). KEINE Beziehungs-, Familien- oder allgemeine Seelenwegkapitel.',
         hdRichtung: 'SCHWERPUNKT BERUF & BERUFUNG: Leite aus Typ, Strategie, Autoritaet, definierten Kanaelen und Motivation ab, wie diese Person kraftvoll und stimmig arbeitet.',
       },
       entscheidung: {
         label: 'Übergänge & Entscheidungen', icon: '⟁', desc: 'Wegkreuzungen klären, richtig entscheiden',
+        titel: 'Übergänge & Entscheidungen', dateiPrefix: 'Entscheidung',
         systems: ['humandesign', 'numerologie'], konstellationen: ['solo'], depth: 15,
-        richtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN: Der Report ist eine konkrete Entscheidungs- und Uebergangsbegleitung. Stelle den Entscheidungsweg der Person ins Zentrum, numerologisch ueber die aktuellen Zyklen (Persoenliches Jahr, 9er-Zyklus, Pinnacle-Wechsel). Klaerend, konkret, wegweisend.',
+        module: ['pj', 'jahresenergien', 'layer_l', 'layer_o'],
+        kernSektionen: 'die aktuellen Zyklen (Persoenliches Jahr, Lebenszyklen & Wendepunkte), der aktuelle Uebergang und der Entscheidungsradar als klaerende Synthese',
+        richtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN (ABGRENZUNG): Eine konkrete Entscheidungs- und Uebergangsbegleitung. Stelle den aktuellen Uebergang und den Entscheidungsweg ins Zentrum, ueber die aktuellen Zyklen (Persoenliches Jahr, 9er-Zyklus, Pinnacle-Wechsel) und den Entscheidungsradar. Klaerend, konkret, wegweisend. Keine breite Charakteranalyse.',
         hdRichtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN: Stelle Strategie und innere Autoritaet als konkreten Entscheidungsweg ins Zentrum, mit lebensnahen Beispielen fuer aktuelle Weggabelungen.',
       },
       familie: {
         label: 'Familiendynamik', icon: '✦', desc: 'Wie die Energien im System zusammenspielen',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['family'], depth: 25,
-        richtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Betrachte die Familie als System. Zeige, wie die Energien der einzelnen Mitglieder zusammenspielen, welche Rollen entstehen, wo Reibung liegt und welche Kraefte verbinden. Die einzelnen Personen dienen dem Verstehen des Ganzen.',
+        titel: 'Eure Familiendynamik', dateiPrefix: 'Familiendynamik',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['family'], depth: 15,
+        richtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Betrachte die Familie als System. Zeige, wie die Energien der einzelnen Mitglieder zusammenspielen, welche Rollen entstehen, wo Reibung liegt und welche Kraefte verbinden. Halte die individuellen Portraits kompakt, das GANZE steht im Zentrum. Keine ausufernden Einzelanalysen.',
         hdRichtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Deute, wie die BodyGraphs der Familienmitglieder aufeinander wirken, wer wen konditioniert und was verbindet.',
       },
       energie: {
         label: 'Gesundheit & Energie', icon: '△', desc: 'Energiehaushalt über die HD-Zentren',
+        titel: 'Gesundheit & Energie', dateiPrefix: 'Gesundheit',
         systems: ['humandesign'], konstellationen: ['solo'], depth: 15,
-        hdRichtung: 'SCHWERPUNKT GESUNDHEIT & ENERGIE: Gewichte den BodyGraph auf den Energiehaushalt. Deute die definierten vs. offenen Zentren als energetische Lern- und Belastungsfelder, sprich Regeneration und einen gesunden Rhythmus im Sinne der typgerechten Strategie und Autoritaet an. Der Gesundheitskompass ist das Herz dieses Reports. Klar: energetische Selbsterkenntnis, keine medizinische Diagnose oder Therapie.',
+        hdRichtung: 'SCHWERPUNKT GESUNDHEIT & ENERGIE: Gewichte den BodyGraph kompromisslos auf den Energiehaushalt. Deute die definierten vs. offenen Zentren als energetische Lern- und Belastungsfelder, sprich Regeneration und einen gesunden Rhythmus im Sinne der typgerechten Strategie und Autoritaet an. Der Gesundheitskompass ist das Herz dieses Reports. Klar: energetische Selbsterkenntnis, keine medizinische Diagnose oder Therapie.',
       },
     };
     // Reihenfolge der Themen-Kacheln im UI
-    const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'kinder', 'jahresausblick', 'beruf', 'entscheidung', 'familie', 'energie'];
+    const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'seelenmission', 'kinder', 'jahresausblick', 'beruf', 'entscheidung', 'familie', 'energie'];
 
     // ── FLOW ───────────────────────────────────────────────────────
     function getFlow() {
@@ -1541,7 +1568,13 @@ ${monthLines}${transitionNote}`;
       const hasKids = state.constellation === 'family' || state.constellation === 'solo_children';
       const multiPerson = hasPair || hasKids; // Paar, Familie, Alleinerziehend: kein Persönliches Jahr, Fokus auf Gemeinsames
       // Umfang-Regler bestimmt endgueltig, welche Module enthalten sind
-      state.disabledSections = depthToDisabled(state.depth, multiPerson);
+      const _themeCfg = THEMEN[state.focus] || null;
+      if (_themeCfg && Array.isArray(_themeCfg.module)) {
+        // Fokus-Thema: nur die erlaubten Kapitel, alle anderen optionalen Module weg.
+        state.disabledSections = ALL_OPTIONAL_KEYS.filter(k => !_themeCfg.module.includes(k));
+      } else {
+        state.disabledSections = depthToDisabled(state.depth, multiPerson);
+      }
       const p1 = getPerson('p1'), p2 = hasPair ? getPerson('p2') : null;
       // Alle Mitglieder (für kompakte Sektionen bei Familie/Paar: Namen-Numerologie, Persönlicher Tag, Jahresenergien)
       const memberNames = [p1.firstName, hasPair && p2 ? p2.firstName : null, ...(hasKids ? getChildren().map(c => c.firstName) : [])].filter(Boolean);
@@ -1658,6 +1691,18 @@ ${monthLines}${transitionNote}`;
       const themeLabel = _theme ? _theme.label : (state.focus || '');
       const themeRichtung = _theme
         ? (state.system === 'humandesign' ? (_theme.hdRichtung || _theme.richtung || '') : (_theme.richtung || ''))
+        : '';
+
+      // GRUNDDATEN-Block (zur Kontrolle: Was, fuer wen, auf welchen Daten). Erste Sektion jedes Reports.
+      const _fuerWen = { solo: 'Einzelperson', pair: 'Personenvergleich (zwei Personen)', family: 'Familie', solo_children: 'Alleinerziehend mit Kind(ern)' }[state.constellation] || state.constellation || 'Einzelperson';
+      const _gd = (pp) => pp ? `${pp.firstName || 'ohne Name'} — ${pp.birthDate || 'Datum fehlt'}${(pp.birthTime && pp.birthTime !== 'unbekannt') ? ', ' + pp.birthTime : ', Zeit unbekannt'}${pp.birthPlace ? ', ' + pp.birthPlace : ''}` : '';
+      const _sysName = state.system === 'humandesign' ? 'Human Design (BodyGraph)' : 'Numerologie & Astrologie';
+      const grunddatenBlock = `\nGRUNDDATEN (fuer die Pflicht-Sektion «Grunddaten» ganz am Anfang, exakt so wiedergeben):\n- Thema: ${themeLabel}\n- Fuer wen: ${_fuerWen}\n- Person(en): ${_gd(p1)}${p2 ? ' | ' + _gd(p2) : ''}\n- System: ${_sysName}\n- Analysedatum: ${state.analysisDate || 'heute'}`;
+      const grunddatenInstr = `GRUNDDATEN (PFLICHT, ALLERERSTE Sektion, noch vor «Auf einen Blick», mit ~~~ abgetrennt): Titel «Grunddaten». Gib die oben gelieferten Grunddaten als kompakte Aufzaehlung wieder (Thema, Fuer wen, Person(en) mit den verwendeten Geburtsdaten, System, Analysedatum). Nur die Fakten, keine Deutung. Danach folgt «Auf einen Blick».`;
+
+      // SCHLANKER FOKUS-REPORT: bei Fokus-Themen den Fundament-Teil zusammenziehen, Themen-Kapitel vertiefen.
+      const schlankerKernInstr = (_theme && _theme.kernSektionen)
+        ? `\n\nSCHLANKER FOKUS-REPORT (WICHTIG): Dies ist ein fokussierter Report zum Thema «${themeLabel}», NICHT die grosse Gesamtanalyse.\n- «Auf einen Blick» maximal 120 Woerter.\n- Die Fundament-Kapitel «Der zentrale Code», «Dein persoenlicher Lebensweg», «Deine Namen-Energie» und «Herausforderung & Schluessel» werden NICHT als eigene lange Kapitel erstellt. Fasse sie zu EINER kompakten Sektion «Kurz zu dir» zusammen (max. 250 Woerter), nur so viel, wie das Thema braucht.\n- Das gesamte Gewicht und die volle Tiefe liegen auf: ${_theme.kernSektionen}. Diese Kapitel fuehrst du besonders ausfuehrlich, konkret und detailliert aus.\n- Gesamtumfang maximal etwa ${state.depth} Seiten. Kein Fuellmaterial, keine themenfremden Kapitel.`
         : '';
 
       const intros = {
@@ -1873,9 +1918,11 @@ MODUS: Human Design (eigenstaendige Analyse, KEINE Numerologie, KEINE Astrologie
 
 PERSON: ${p1.firstName || 'Diese Person'}${p1.birthDate ? `, geboren am ${p1.birthDate}` : ''}${(p1.birthTime && p1.birthTime !== 'unbekannt') ? ` um ${p1.birthTime}` : ''}${p1.birthPlace ? ` in ${p1.birthPlace}` : ''}.
 ${hdChart}
+${grunddatenBlock}
 ${themeRichtung ? `\nAUSRICHTUNG DIESES REPORTS (verbindlich): ${themeRichtung}\n` : ''}
 
 AUSGABE-STRUKTUR (jede Sektion mit ~~~ abgetrennt, erste Zeile ist der Sektionstitel, dann der Inhalt; danach lueckenlos nummerieren):
+0. «Grunddaten» (PFLICHT, allererste Sektion): gib die oben gelieferten GRUNDDATEN als kompakte Aufzaehlung wieder (Thema, Fuer wen, Person mit den verwendeten Geburtsdaten, System, Analysedatum). Nur Fakten, keine Deutung.
 1. «Auf einen Blick» (ca. 150 bis 200 Woerter): Typ, Strategie, Autoritaet und Profil dieser Person in warmen, klaren Saetzen auf den Punkt gebracht, das Wichtigste vorweg.
 2. «Dein Typ und deine Strategie»: was der Typ ${c.typeDe} bedeutet, wie Energie bei dieser Person wirkt, wie die Strategie im Alltag konkret aussieht, was Signatur und Not-Self-Thema im Erleben heissen.
 3. «Deine innere Autoritaet»: wie diese Person richtig entscheidet, mit konkreten Alltagsbeispielen.
@@ -2006,7 +2053,7 @@ AUSGABE-REGELN:
 ${langInstr}
 
 KONSTELLATION: ${state.constellation}
-THEMA: ${themeLabel}${themeRichtung ? `\n${themeRichtung}` : ''}${bezLens}${themenBlock}
+THEMA: ${themeLabel}${themeRichtung ? `\n${themeRichtung}` : ''}${bezLens}${themenBlock}${grunddatenBlock}${schlankerKernInstr}
 ${personBlock(p1, 'PERSON 1')}
 ${p2 ? personBlock(p2, 'PERSON 2') : ''}
 ${compatBlock}
@@ -2053,7 +2100,8 @@ Für Essenz (letzter Satz, gross): [ESSENZ:Text]
 Für normalen Fliesstext: einfach Text ohne Markierung.
 
 ${omitBlock}
-ERÖFFNUNG (PFLICHT, als allererste Sektion ganz am Anfang, vor den nummerierten Sektionen, mit ~~~ abgetrennt): Titel «Auf einen Blick». Gib in ca. 200 bis 300 Wörtern einen warmen, konkreten Überblick über die ganze Analyse${hasPair ? ' für beide Personen' : ''}: die wichtigsten Kernzahlen, das zentrale Lebensthema,${multiPerson ? ' die gemeinsame Dynamik' : ' das aktuell aktive Persönliche Jahr'} und zwei bis drei zentrale Botschaften, die sich durch die Analyse ziehen. Einladend und konkret, ohne die Details vorwegzunehmen. Danach folgen die Sektionen wie unten.
+${grunddatenInstr}
+ERÖFFNUNG (PFLICHT, als zweite Sektion nach «Grunddaten», vor den nummerierten Sektionen, mit ~~~ abgetrennt): Titel «Auf einen Blick». Gib in ca. 200 bis 300 Wörtern einen warmen, konkreten Überblick über die ganze Analyse${hasPair ? ' für beide Personen' : ''}: die wichtigsten Kernzahlen, das zentrale Lebensthema,${multiPerson ? ' die gemeinsame Dynamik' : ' das aktuell aktive Persönliche Jahr'} und zwei bis drei zentrale Botschaften, die sich durch die Analyse ziehen. Einladend und konkret, ohne die Details vorwegzunehmen. Danach folgen die Sektionen wie unten.
 ${multiPerson ? `\n🔗 FOKUS BEI MEHREREN PERSONEN (Paar/Familie/Alleinerziehend): KEINE Sektion «Persönliches Jahr» (weder aktuell noch nächstes) für irgendeine Person, das wird hier komplett weggelassen. Diese drei Sektionen MÜSSEN für ALLE Mitglieder (${memberNamesStr}) erscheinen, aber jeweils SAUBER UND KOMPAKT (kurze Karten/Zeilen, wenige Sätze pro Person): Namen-Numerologie, Jahresenergien-Tabelle, Persönlicher Tag. Halte generell ALLE individuellen Numerologie-Portraits knapp und lege das Gewicht klar auf die GEMEINSAME Ebene: Beziehungs- bzw. Familiendynamik, der verbindende Code, Resonanz und Reibung, gemeinsame Richtung und gemeinsame Themen. Nummeriere die Sektionen lueckenlos und fortlaufend (es gibt keine PJ-Sektion, lasse keine Luecke). Bei Familie oder Alleinerziehenden steht die FAMILIE ALS GANZES im Zentrum, nicht eine einzelne Person: halte die individuellen Portraits der Hauptperson (zentraler Code, Lebensweg, Namen-Energie, Layer A bis F) fokussiert und vermeide Ausschweifen; das Familiensystem, die Dynamik zwischen allen Mitgliedern und die Kinder bekommen das klar groessere Gewicht der Analyse. Vermeide den Eindruck «viele Seiten Mutter, wenig Rest».\n` : ''}
 
 Erstelle folgende Sektionen mit erheblicher Tiefe. ZIELLAENGE: durchschnittlich 1500 Wörter pro Sektion (Kurz-Sektionen wie Essenz ausgenommen). Schreibe wie eine erfahrene Beraterin mit 20 Jahren Erfahrung, die Zeit hat. Keine generischen Phrasen, jede Aussage muss an konkrete Daten der Person ankoppeln.${orderBlock}${axisNote}
@@ -2244,7 +2292,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
 
       // Titel pro Analyse-Modus
       const REPORT_TITLES = { full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' };
-      const reportTitle = (state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : (REPORT_TITLES[state.mode] || 'Deine Seelenlandschaft');
+      const _themeTitel = (THEMEN[state.focus] && THEMEN[state.focus].titel) || null;
+      const reportTitle = _themeTitel || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : (REPORT_TITLES[state.mode] || 'Deine Seelenlandschaft'));
       const titleEl = document.getElementById('result-hero-title');
       if (titleEl) titleEl.textContent = reportTitle;
       const subEl = document.getElementById('result-subtitle');
@@ -2752,7 +2801,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const res = await fetch('/api/generate-docx', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rawText, name, language: state.language, title: ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : ({ full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' })[state.mode]) || undefined, subtitle: reportDescriptor(true) }),
+          body: JSON.stringify({ rawText, name, language: state.language, title: ((THEMEN[state.focus] && THEMEN[state.focus].titel) || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : ({ full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' })[state.mode])) || undefined, subtitle: reportDescriptor(true) }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -2763,7 +2812,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const a = document.createElement('a');
         a.href = url;
         const safe = name.replace(/[^a-zA-Z0-9_\- ]+/g, '').replace(/\s+/g, '_') || 'Analyse';
-        const filePrefix = ({ full: 'Seelenlandschaft', individual: 'Analyse', humandesign: 'BodyGraph', humandesign_individual: 'Analyse', kurzprofil: 'Kurzprofil' })[state.mode] || 'Analyse';
+        const filePrefix = (THEMEN[state.focus] && THEMEN[state.focus].dateiPrefix) || ({ full: 'Seelenlandschaft', individual: 'Analyse', humandesign: 'BodyGraph', humandesign_individual: 'Analyse', kurzprofil: 'Kurzprofil' })[state.mode] || 'Analyse';
         a.download = `${filePrefix}_${safe}.docx`;
         document.body.appendChild(a);
         a.click();
@@ -4113,7 +4162,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
             {[
               ['gesamtbild', '◎', 'Das grosse Gesamtbild', 'Alle Dimensionen · vollständige Tiefenanalyse'],
               ['beziehung', '♡', 'Beziehungsdynamik', 'Verbindung, Resonanz & Partnerschaft'],
-              ['lebensweg', '◈', 'Persönlicher Lebensweg', 'Seele, Bestimmung & innere Kraft'],
+              ['lebensweg', '◈', 'Persönlicher Lebensweg', 'Lebensphasen, Talente, Muster & Reifung'],
+              ['seelenmission', '✶', 'Die Seelenmission', 'Warum du hier bist · Bestimmung & Seelenauftrag'],
               ['kinder', '✧', 'Die Kinder', 'Seelenbild & Energien der Kinder'],
               ['jahresausblick', '◬', 'Jahresausblick', 'Energien & Pinnacles für die kommenden Jahre'],
               ['beruf', '◈', 'Beruf & Berufung', 'Talente, Aufgabe & richtige Umgebung'],
