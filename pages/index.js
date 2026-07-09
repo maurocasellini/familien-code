@@ -279,44 +279,127 @@ export default function Home() {
       uebergang:     { label: 'Übergang & Neuanfang', icon: '◠', desc: 'Begleitung durch eine Lebensphase', prefill: 'Begleite diese Person durch einen aktuellen Übergang (Abschluss, Krise oder Neuanfang) über den 9er-Zyklus und die aktuellen Energien: ' },
     };
 
+    // ── THEMEN ─────────────────────────────────────────────────────
+    // Das Thema ist der erste Schritt und steuert alles: welche Systeme und
+    // Konstellationen ueberhaupt angeboten werden ("nur was passt"), die fixe
+    // Zieltiefe (kein waehlbarer Umfang) und die verbindliche Richtung des Reports.
+    // systems[]/konstellationen[] mit einem Eintrag => Schritt wird uebersprungen.
+    // richtung = wird in den Prompt injiziert (Numerologie-Reports), hdRichtung fuer Human Design.
+    const THEMEN = {
+      gesamtbild: {
+        label: 'Das grosse Gesamtbild', icon: '◎', desc: 'Alle Dimensionen · vollständige Tiefenanalyse',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo', 'family'], depth: 25,
+        richtung: 'SCHWERPUNKT GESAMTBILD: Dies ist die vollstaendige Tiefenanalyse ueber alle Dimensionen. Webe Numerologie, Astrologie und Lebenszyklen zu einem stimmigen, umfassenden Gesamtbild. Kein Aspekt wird ausgespart, alle Ebenen werden verbunden.',
+        hdRichtung: 'SCHWERPUNKT GESAMTBILD: Zeichne den vollstaendigen BodyGraph in ganzer Tiefe, alle Ebenen von Typ bis Variablen ausgewogen.',
+      },
+      beziehung: {
+        label: 'Beziehungsdynamik', icon: '♡', desc: 'Verbindung, Resonanz & Partnerschaft',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['pair'], depth: 16,
+        richtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Richte die gesamte Analyse auf die Beziehungsachse aus, also Resonanz, Anziehung, Reibung, Naehe und Freiraum sowie die gemeinsame Aufgabe der beiden. Individuelle Lebensweg-, Berufs- und reine Jahresprognose-Kapitel bleiben bewusst schlank oder entfallen. Alles dient dem Verstehen der Verbindung.',
+        hdRichtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Deute das Zusammenspiel der beiden BodyGraphs, wo Energien sich anziehen, ergaenzen und reiben.',
+      },
+      lebensweg: {
+        label: 'Persönlicher Lebensweg', icon: '◈', desc: 'Seele, Bestimmung & innere Kraft',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 16,
+        richtung: 'SCHWERPUNKT PERSOENLICHER LEBENSWEG: Fokussiere auf Seele, Bestimmung, Kernzahlen, Seelenaufgabe, innere Kraft und Wachstum dieser Person. Gehe in die Tiefe bei Lebenszahl, Seelendrang, Mondknoten und Lebensthema. Beziehungs- und reine Jahresprognose-Teile bleiben Randthemen.',
+        hdRichtung: 'SCHWERPUNKT LEBENSWEG: Betone Inkarnationskreuz, Profil und Autoritaet als Weg der Bestimmung dieser Person.',
+      },
+      kinder: {
+        label: 'Die Kinder', icon: '✧', desc: 'Seelenbild & Energien der Kinder',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo_children', 'family'], depth: 16,
+        richtung: 'SCHWERPUNKT DIE KINDER: Zeichne fuer jedes Kind ein liebevolles Seelenbild, sein Wesen, seine Energien, Beduerfnisse und Talente, und wie die Eltern es staerken und begleiten koennen. Schreibe aus der begleitenden Elternperspektive. Kein Erwachsenen-Karriere- oder Partnerschaftsteil.',
+        hdRichtung: 'SCHWERPUNKT DIE KINDER: Deute den BodyGraph des Kindes als Anleitung fuer die Eltern, wie sie es typgerecht begleiten.',
+      },
+      jahresausblick: {
+        label: 'Jahresausblick', icon: '◬', desc: 'Energien & Pinnacles für die kommenden Jahre',
+        systems: ['numerologie'], konstellationen: ['solo'], depth: 15,
+        richtung: 'SCHWERPUNKT JAHRESAUSBLICK: Der Report ist zeitlich und prognostisch. Fuehre durch das aktuelle und kommende Persoenliche Jahr, Monat fuer Monat, mit Pinnacles, Herausforderungen, Chancen und guenstigen Zeitfenstern. Der statische Charakter-Teil bleibt knapp, das Timing steht im Zentrum.',
+      },
+      beruf: {
+        label: 'Beruf & Berufung', icon: '◈', desc: 'Talente, Aufgabe & richtige Umgebung',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 16,
+        richtung: 'SCHWERPUNKT BERUF & BERUFUNG: Richte alles auf Talente, Aufgabe, Arbeitsweise, passende Umfelder und das Timing beruflicher Schritte aus. Nutze Ausdruckszahl, Lebensaufgabe (MC), Staerken und die aktuellen Zyklen. Beziehungs- und Familienthemen bleiben aussen vor.',
+        hdRichtung: 'SCHWERPUNKT BERUF & BERUFUNG: Leite aus Typ, Strategie, Autoritaet, definierten Kanaelen und Motivation ab, wie diese Person kraftvoll und stimmig arbeitet.',
+      },
+      entscheidung: {
+        label: 'Übergänge & Entscheidungen', icon: '⟁', desc: 'Wegkreuzungen klären, richtig entscheiden',
+        systems: ['humandesign', 'numerologie'], konstellationen: ['solo'], depth: 15,
+        richtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN: Der Report ist eine konkrete Entscheidungs- und Uebergangsbegleitung. Stelle den Entscheidungsweg der Person ins Zentrum, numerologisch ueber die aktuellen Zyklen (Persoenliches Jahr, 9er-Zyklus, Pinnacle-Wechsel). Klaerend, konkret, wegweisend.',
+        hdRichtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN: Stelle Strategie und innere Autoritaet als konkreten Entscheidungsweg ins Zentrum, mit lebensnahen Beispielen fuer aktuelle Weggabelungen.',
+      },
+      familie: {
+        label: 'Familiendynamik', icon: '✦', desc: 'Wie die Energien im System zusammenspielen',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['family'], depth: 25,
+        richtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Betrachte die Familie als System. Zeige, wie die Energien der einzelnen Mitglieder zusammenspielen, welche Rollen entstehen, wo Reibung liegt und welche Kraefte verbinden. Die einzelnen Personen dienen dem Verstehen des Ganzen.',
+        hdRichtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Deute, wie die BodyGraphs der Familienmitglieder aufeinander wirken, wer wen konditioniert und was verbindet.',
+      },
+      energie: {
+        label: 'Gesundheit & Energie', icon: '△', desc: 'Energiehaushalt über die HD-Zentren',
+        systems: ['humandesign'], konstellationen: ['solo'], depth: 15,
+        hdRichtung: 'SCHWERPUNKT GESUNDHEIT & ENERGIE: Gewichte den BodyGraph auf den Energiehaushalt. Deute die definierten vs. offenen Zentren als energetische Lern- und Belastungsfelder, sprich Regeneration und einen gesunden Rhythmus im Sinne der typgerechten Strategie und Autoritaet an. Der Gesundheitskompass ist das Herz dieses Reports. Klar: energetische Selbsterkenntnis, keine medizinische Diagnose oder Therapie.',
+      },
+    };
+    // Reihenfolge der Themen-Kacheln im UI
+    const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'kinder', 'jahresausblick', 'beruf', 'entscheidung', 'familie', 'energie'];
+
     // ── FLOW ───────────────────────────────────────────────────────
     function getFlow() {
-      // Stufe 1 = System (Screen 'mode'), Stufe 2 = Art (Screen 'art', entfaellt bei HD).
-      let front = ['splash', 'mode'];
-      if (state.system && !artStufeEntfaellt(state.system)) front.push('art');
+      // NEU: Das Thema ist Schritt 1 und steuert alles. Danach System (nur wenn
+      // mehrere passen), dann Fuer wen (nur wenn mehrere passen), dann Daten.
+      // Kein Art- und kein Detailtiefe-Screen mehr: Art = auto, Tiefe = fix pro Thema.
+      let front = ['splash', 'theme'];
+      const t = THEMEN[state.focus];
+      if (!t) return front;
 
-      // mode aus System+Art ableiten; solange unvollstaendig: nur die Frontstufen zeigen.
-      const report = getReport(state.system, state.art);
-      const mode = report ? report.mode : null;
-      if (!report) return front;
+      // System-Schritt nur, wenn das Thema mehrere Systeme zulaesst.
+      if (t.systems.length > 1) front.push('mode');
+      if (!state.system) return front;
 
-      if (mode === 'humandesign') {
-        // HD kann Einzel oder Paar (Connection Chart). Familie/Alleinerziehend
-        // noch nicht (Penta/Composite kuenftig). Konstellation waehlbar.
+      const showKonst = t.konstellationen.length > 1;
+
+      if (state.system === 'humandesign') {
+        // Human Design: eigenstaendiger BodyGraph. Einzel oder Paar (Connection).
         const hdPair = state.constellation === 'pair';
-        let f = [...front, 'constellation', 'person1'];
+        let f = [...front];
+        if (showKonst) f.push('constellation');
+        f.push('person1');
         if (hdPair) f.push('person2', 'vergleich');
         f.push('loading', 'result');
         return f;
       }
-      if (mode === 'individual') {
-        return [...front, 'person1', 'auftrag', 'loading', 'result'];
-      }
-      if (mode === 'humandesign_individual') {
-        return [...front, 'person1', 'auftrag', 'loading', 'result'];
-      }
-      if (mode === 'kurzprofil') {
-        return [...front, 'person1', 'loading', 'result'];
-      }
+
+      // Numerologie (vollstaendige Analyse, Art = standard/full).
       const hasPair = state.constellation === 'pair' || state.constellation === 'family';
       const hasKids = state.constellation === 'family' || state.constellation === 'solo_children';
-      let f = [...front, 'constellation', 'person1'];
+      let f = [...front];
+      if (showKonst) f.push('constellation');
+      f.push('person1');
       if (hasPair) f.push('person2');
       if (state.constellation === 'pair') f.push('vergleich');
       if (hasPair) f.push('couple');
       if (hasKids) f.push('children');
-      f.push('ancestry', 'depth', 'focus', 'loading', 'result');
+      f.push('ancestry', 'loading', 'result');
       return f;
+    }
+
+    // Thema anwenden: Systeme/Konstellationen filtern, Einzel-Optionen fix setzen,
+    // fixe Zieltiefe uebernehmen. Wird beim Waehlen der Themen-Kachel aufgerufen.
+    function applyTheme(id) {
+      const t = THEMEN[id];
+      if (!t) return;
+      state.focus = id;
+      state.depth = t.depth;
+      state.art = 'standard';
+      // System: bei nur einem moeglichen sofort setzen, sonst zuruecksetzen (Wahl folgt).
+      if (t.systems.length === 1) {
+        state.system = t.systems[0];
+        state.mode = state.system === 'humandesign' ? 'humandesign' : 'full';
+      } else {
+        state.system = '';
+        state.mode = '';
+      }
+      // Konstellation: bei nur einer moeglichen sofort setzen, sonst zuruecksetzen (Wahl folgt).
+      state.constellation = t.konstellationen.length === 1 ? t.konstellationen[0] : '';
     }
 
     let cur = 'splash';
@@ -343,19 +426,25 @@ export default function Home() {
       // Human Design kann (noch) nur Einzel oder Paar: Familie/Alleinerziehend
       // auf dem Konstellations-Screen ausblenden, sonst wieder einblenden.
       // Kurzprofil gibt es nur fuer Numerologie -> Karte bei Human Design ausblenden.
-      if (id === 'art') {
-        const isHd = state.system === 'humandesign';
-        const kp = document.querySelector('#screen-art .select-card[data-value="kurzprofil"]');
-        if (kp) kp.style.display = isHd ? 'none' : '';
+      // System-Screen: nur die Systeme zeigen, die zum Thema passen ("nur was passt").
+      if (id === 'mode') {
+        const t = THEMEN[state.focus];
+        const allowed = t ? t.systems : ['numerologie', 'humandesign'];
+        document.querySelectorAll('#screen-mode .select-card').forEach(card => {
+          card.style.display = allowed.includes(card.dataset.value) ? '' : 'none';
+        });
       }
       if (id === 'constellation') {
-        const hd = state.mode === 'humandesign';
-        ['family', 'solo_children'].forEach(v => {
-          const card = document.querySelector(`#screen-constellation .select-card[data-value="${v}"]`);
-          if (card) card.style.display = hd ? 'none' : '';
+        const t = THEMEN[state.focus];
+        const hd = state.system === 'humandesign';
+        // Erlaubte Konstellationen aus dem Thema; bei HD zusaetzlich nur solo/pair.
+        let allowed = t ? t.konstellationen.slice() : ['solo', 'pair', 'family', 'solo_children'];
+        if (hd) allowed = allowed.filter(v => v === 'solo' || v === 'pair');
+        document.querySelectorAll('#screen-constellation .select-card').forEach(card => {
+          card.style.display = allowed.includes(card.dataset.value) ? '' : 'none';
         });
-        // Falls bei HD eine nicht erlaubte Konstellation aktiv war: zuruecksetzen.
-        if (hd && (state.constellation === 'family' || state.constellation === 'solo_children')) {
+        // Falls eine nicht (mehr) erlaubte Konstellation aktiv war: zuruecksetzen.
+        if (state.constellation && !allowed.includes(state.constellation)) {
           state.constellation = '';
           document.querySelectorAll('#screen-constellation .select-card').forEach(c => c.classList.remove('selected'));
           const btn = document.getElementById('btn-constellation-next');
@@ -419,28 +508,20 @@ export default function Home() {
     function selectCard(el, type) {
       el.closest('[class*="card-grid"]').querySelectorAll('.select-card').forEach(c => c.classList.remove('selected'));
       el.classList.add('selected');
-      if (type === 'constellation') {
+      if (type === 'theme') {
+        applyTheme(el.dataset.value);
+        const btn = document.getElementById('btn-theme-next');
+        if (btn) btn.disabled = false;
+      } else if (type === 'constellation') {
         state.constellation = el.dataset.value;
         const btn = document.getElementById('btn-constellation-next');
         if (btn) btn.disabled = false;
-      } else if (type === 'focus') {
-        state.focus = el.dataset.value;
-        const btn = document.getElementById('btn-focus-next');
-        if (btn) btn.disabled = false;
       } else if (type === 'system') {
+        // Themen-Flow: nach der System-Wahl entfaellt der Art-Schritt.
+        // Numerologie => vollstaendige Analyse (full), Human Design => humandesign.
         state.system = el.dataset.value;
-        state.art = '';
-        // Art-Screen zuruecksetzen (falls vorher schon eine Art gewaehlt war)
-        document.querySelectorAll('#screen-art .select-card').forEach(c => c.classList.remove('selected'));
-        const artBtn = document.getElementById('btn-art-next');
-        if (artBtn) artBtn.disabled = true;
-        // Bei Systemen ohne Art (HD): mode sofort ableiten. Sonst erst nach Art-Wahl.
-        if (artStufeEntfaellt(state.system)) {
-          const rep = getReport(state.system, null);
-          state.mode = rep ? rep.mode : state.mode;
-        } else {
-          state.mode = '';
-        }
+        state.art = 'standard';
+        state.mode = state.system === 'humandesign' ? 'humandesign' : 'full';
         const btn = document.getElementById('btn-mode-next');
         if (btn) btn.disabled = false;
       } else if (type === 'art') {
@@ -1571,6 +1652,14 @@ ${monthLines}${transitionNote}`;
       };
       const langInstr = langInstructions[state.language] || langInstructions.de;
 
+      // THEMEN-AUSRICHTUNG: verbindliche Richtung des Reports je nach gewaehltem Thema.
+      // Numerologie nutzt .richtung, Human Design .hdRichtung (Fallback auf .richtung).
+      const _theme = THEMEN[state.focus] || null;
+      const themeLabel = _theme ? _theme.label : (state.focus || '');
+      const themeRichtung = _theme
+        ? (state.system === 'humandesign' ? (_theme.hdRichtung || _theme.richtung || '') : (_theme.richtung || ''))
+        : '';
+
       const intros = {
         de: 'Du bist ein erfahrener Astrologe und Numerologe. Erstelle eine tiefe, persönliche Analyse auf Deutsch, direkt ansprechend (du).',
         en: 'You are an experienced astrologer and numerologist. Create a deep, personal analysis in English, addressing the reader directly (you).',
@@ -1784,6 +1873,7 @@ MODUS: Human Design (eigenstaendige Analyse, KEINE Numerologie, KEINE Astrologie
 
 PERSON: ${p1.firstName || 'Diese Person'}${p1.birthDate ? `, geboren am ${p1.birthDate}` : ''}${(p1.birthTime && p1.birthTime !== 'unbekannt') ? ` um ${p1.birthTime}` : ''}${p1.birthPlace ? ` in ${p1.birthPlace}` : ''}.
 ${hdChart}
+${themeRichtung ? `\nAUSRICHTUNG DIESES REPORTS (verbindlich): ${themeRichtung}\n` : ''}
 
 AUSGABE-STRUKTUR (jede Sektion mit ~~~ abgetrennt, erste Zeile ist der Sektionstitel, dann der Inhalt; danach lueckenlos nummerieren):
 1. «Auf einen Blick» (ca. 150 bis 200 Woerter): Typ, Strategie, Autoritaet und Profil dieser Person in warmen, klaren Saetzen auf den Punkt gebracht, das Wichtigste vorweg.
@@ -1916,7 +2006,7 @@ AUSGABE-REGELN:
 ${langInstr}
 
 KONSTELLATION: ${state.constellation}
-FOKUS: ${state.focus}${bezLens}${themenBlock}
+THEMA: ${themeLabel}${themeRichtung ? `\n${themeRichtung}` : ''}${bezLens}${themenBlock}
 ${personBlock(p1, 'PERSON 1')}
 ${p2 ? personBlock(p2, 'PERSON 2') : ''}
 ${compatBlock}
@@ -2278,7 +2368,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         console.error('[FC] startAnalysis OUTER crash:', outerErr);
         alert('Analyse-Fehler:\n\n' + (outerErr.message || outerErr) + '\n\nDevTools → Console für mehr Info.');
         stopLoader();
-        showScreen(state.mode === 'humandesign' ? 'person1' : (state.mode === 'individual' ? 'auftrag' : 'focus'));
+        showScreen(state.mode === 'humandesign' ? 'person1' : (state.mode === 'individual' ? 'auftrag' : 'person1'));
       }
     }
 
@@ -2717,7 +2807,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       const secFields = document.getElementById('sections-fields');
       if (secFields) secFields.classList.add('hidden');
       const btn1 = document.getElementById('btn-constellation-next');
-      const btn2 = document.getElementById('btn-focus-next');
+      const btn2 = document.getElementById('btn-theme-next');
       const btn3 = document.getElementById('btn-lead-next');
       if (btn1) btn1.disabled = true;
       if (btn2) btn2.disabled = true;
@@ -2810,7 +2900,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const grid = card.closest('[class*="card-grid"]');
         if (grid) {
           const type = card.dataset.cardType;
-          selectCard(card, type || (card.closest('#screen-constellation') ? 'constellation' : 'focus'));
+          selectCard(card, type || (card.closest('#screen-constellation') ? 'constellation' : 'theme'));
         }
       }
       // Toggle rows
@@ -2893,8 +2983,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         if (id === 'btn-constellation-next') goNext();
         if (id === 'btn-mode-next') goNext();
         if (id === 'btn-art-next') goNext();
+        if (id === 'btn-theme-next') goNext();
         if (id === 'btn-auftrag-next') startAnalysis();
-        if (id === 'btn-focus-next') startAnalysis();
         if (btn.classList.contains('btn-back')) goBack();
         if (btn.classList.contains('btn-next-generic')) goNext();
         if (id === 'hero-cta-btn') goNext();
@@ -3647,13 +3737,13 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       <div className="screen" id="screen-mode">
         <div className="form-page">
           <div className="form-page-header">
-            <div className="form-eyebrow">Schritt 1 · System</div>
+            <div className="form-eyebrow">Schritt 2 · Methode</div>
             <h2 className="form-h2">Welche Methode<br/>möchtest du nutzen?</h2>
             <p className="form-sub">Die numerologische Analyse oder Human Design. Sie bestimmt, welche Berechnungen laufen.</p>
           </div>
           <div className="card-grid-2">
             {[
-              ['numerologie', '✶', 'Numerologie', 'Zahlen, Namen, Lebenszyklen und Astrologie als Fundament. Standard- oder individuelle Analyse.'],
+              ['numerologie', '✶', 'Numerologie', 'Zahlen, Namen, Lebenszyklen und Astrologie als Fundament.'],
               ['humandesign', '✦', 'Human Design', 'Der vollständige BodyGraph aus Geburtsdatum, exakter Zeit und Ort. Eigenständig, ohne Numerologie.'],
             ].map(([value, icon, title, desc]) => (
               <div className="select-card" data-card-type="system" data-value={value} key={value}>
@@ -3700,7 +3790,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       <div className="screen" id="screen-constellation">
         <div className="form-page">
           <div className="form-page-header">
-            <div className="form-eyebrow">Schritt 1 von 6 · Konstellation</div>
+            <div className="form-eyebrow">Für wen</div>
             <h2 className="form-h2">Für wen erstellst du<br/>diese Analyse?</h2>
             <p className="form-sub">Wähle die Konstellation der Klient:in. Sie bestimmt Tiefe und Sektionen der Analyse.</p>
           </div>
@@ -4011,23 +4101,27 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         </div>
       </div>
 
-      {/* SCREEN 7: FOKUS */}
-      <div className="screen" id="screen-focus">
+      {/* SCREEN 1: THEMA (erster Schritt, steuert alles) */}
+      <div className="screen" id="screen-theme">
         <div className="form-page">
           <div className="form-page-header">
-            <div className="form-eyebrow">Schritt 7 · Fokus</div>
-            <h2 className="form-h2">Worauf soll der<br/>Schwerpunkt liegen?</h2>
-            <p className="form-sub">Wähle das Thema, das aktuell am stärksten bewegt. Die Analyse bleibt vollständig, dieser Fokus bestimmt wo sie am tiefsten geht.</p>
+            <div className="form-eyebrow">Schritt 1 · Thema</div>
+            <h2 className="form-h2">Worum geht es<br/>in dieser Analyse?</h2>
+            <p className="form-sub">Wähle das Thema. Es bestimmt die passenden Methoden, für wen die Analyse ist und in welche Richtung der Bericht geht.</p>
           </div>
           <div className="card-grid-2-3">
             {[
-              ['overview', '◎', 'Das grosse Gesamtbild', 'Alle Dimensionen — vollständige Tiefenanalyse'],
-              ['relationship', '♡', 'Beziehungsdynamik', 'Verbindung, Resonanz & Partnerschaft'],
-              ['personal', '◈', 'Persönlicher Lebensweg', 'Seele, Bestimmung & innere Kraft'],
-              ['children_focus', '✧', 'Die Kinder', 'Seelenbild & Energien der Kinder'],
-              ['future', '◬', 'Zukunft & Jahresprognosen', 'Energien & Pinnacles für die kommenden Jahre'],
+              ['gesamtbild', '◎', 'Das grosse Gesamtbild', 'Alle Dimensionen · vollständige Tiefenanalyse'],
+              ['beziehung', '♡', 'Beziehungsdynamik', 'Verbindung, Resonanz & Partnerschaft'],
+              ['lebensweg', '◈', 'Persönlicher Lebensweg', 'Seele, Bestimmung & innere Kraft'],
+              ['kinder', '✧', 'Die Kinder', 'Seelenbild & Energien der Kinder'],
+              ['jahresausblick', '◬', 'Jahresausblick', 'Energien & Pinnacles für die kommenden Jahre'],
+              ['beruf', '◈', 'Beruf & Berufung', 'Talente, Aufgabe & richtige Umgebung'],
+              ['entscheidung', '⟁', 'Übergänge & Entscheidungen', 'Wegkreuzungen klären, richtig entscheiden'],
+              ['familie', '✦', 'Familiendynamik', 'Wie die Energien im System zusammenspielen'],
+              ['energie', '△', 'Gesundheit & Energie', 'Energiehaushalt über die Human-Design-Zentren'],
             ].map(([value, icon, title, desc]) => (
-              <div className="select-card" data-value={value} key={value}>
+              <div className="select-card" data-card-type="theme" data-value={value} key={value}>
                 <div className="card-top"><div className="card-icon">{icon}</div><div className="card-check">✓</div></div>
                 <div className="card-title">{title}</div>
                 <div className="card-desc">{desc}</div>
@@ -4043,7 +4137,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
           </div>
           <div className="form-footer">
             <button className="btn-back">← Zurück</button>
-            <button className="btn-primary gold" id="btn-focus-next" disabled>Analyse generieren ✦</button>
+            <button className="btn-primary" id="btn-theme-next" disabled>Weiter →</button>
           </div>
         </div>
       </div>
