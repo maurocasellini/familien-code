@@ -1010,14 +1010,14 @@ AHNENLINIE — was aus der Familie mitschwingt (optional eingegeben):${mLine}${f
       const m = birthDate.match(/^(\d{1,2})[\.\-/](\d{1,2})[\.\-/](\d{4})$/);
       if (!m) return null;
       const d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
-      // Ziffernsumme des ganzen Geburtsdatums (Crowley/Tarot), reduzieren bis ≤21.
-      const sum = digitSum(d) + digitSum(mo) + digitSum(y);
+      // Susanas Weg: Tag + Monat + ganzes Jahr als Zahlen, dann reduzieren bis ≤21.
+      const sum = d + mo + y;
       const r = tarotReduce(sum);
       return {
         blockSum: sum,
         ...r,
         cardData: CROWLEY[r.card],
-        calcString: `Ziffernsumme ${String(d).padStart(2,'0')}.${String(mo).padStart(2,'0')}.${y} = ${sum}${r.steps.length > 1 ? ' → ' + r.steps.slice(1).join(' → ') : ''}`,
+        calcString: `${d} + ${mo} + ${y} = ${sum}${r.steps.length > 1 ? ' → ' + r.steps.slice(1).join(' → ') : ''}`,
       };
     }
 
@@ -1043,9 +1043,10 @@ AHNENLINIE — was aus der Familie mitschwingt (optional eingegeben):${mLine}${f
       return tarotReduce(birthDay + birthMonth + startYear).card;
     }
 
-    // Lebenszahl per Crowley/Tarot-Methode: ZIFFERNSUMME des ganzen Geburtsdatums,
-    // dann reduzieren bis ≤21 und dort STOPPEN. Meisterzahl 11 bleibt 11 (NICHT 1+1=2).
-    // Bsp. 02.11.1987: 0+2 +1+1 +1+9+8+7 = 29 → 11 (Endpunkt, nicht weiter auf 2).
+    // Lebenszahl per Susanas Weg (Block-/Crowley-Methode): Tag + Monat + GANZES Jahr
+    // als Zahlen addieren, dann Quersumme reduzieren bis ≤21 und dort STOPPEN.
+    // Bsp. Susana 19.09.1980: 19 + 9 + 1980 = 2008 → 2+0+0+8 = 10.
+    // Bsp. Mauro 02.11.1987: 2 + 11 + 1987 = 2000 → 2+0+0+0 = 2.
     function lifeNum(d) {
       if (!d) return 'n/a';
       const m = String(d).match(/^(\d{1,2})[\.\-/](\d{1,2})[\.\-/](\d{4})$/);
@@ -1053,7 +1054,7 @@ AHNENLINIE — was aus der Familie mitschwingt (optional eingegeben):${mLine}${f
       const day = parseInt(m[1], 10);
       const month = parseInt(m[2], 10);
       const year = parseInt(m[3], 10);
-      return tarotReduce(digitSum(day) + digitSum(month) + digitSum(year)).card;
+      return tarotReduce(day + month + year).card;
     }
 
     // Liefert reichhaltige Info zum aktuellen PJ basierend auf heute
