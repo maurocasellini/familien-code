@@ -297,7 +297,7 @@ export default function Home() {
       beziehung: {
         label: 'Beziehungsdynamik', icon: '♡', desc: 'Verbindung, Resonanz & Partnerschaft',
         titel: 'Eure Beziehungsdynamik', dateiPrefix: 'Beziehungsdynamik',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['pair'], depth: 15,
+        systems: ['numerologie', 'humandesign'], konstellationen: ['pair'], depth: 25,
         richtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Richte den GESAMTEN Report ausschliesslich auf die Verbindung der beiden aus, also Resonanz, Anziehung, Reibung, Naehe und Freiraum sowie die gemeinsame Aufgabe. Halte die individuellen Portraits sehr kompakt. KEINE ausfuehrlichen Einzel-Lebenswege, KEINE Berufs-, Jahresprognose- oder Kinder-Kapitel. Alles dient dem Verstehen genau DIESER Beziehung.',
         hdRichtung: 'SCHWERPUNKT BEZIEHUNGSDYNAMIK: Deute ausschliesslich das Zusammenspiel der beiden BodyGraphs, wo Energien sich anziehen, ergaenzen und reiben.',
       },
@@ -322,7 +322,7 @@ export default function Home() {
       kinder: {
         label: 'Die Kinder', icon: '✧', desc: 'Seelenbild & Energien der Kinder',
         titel: 'Das Seelenbild deiner Kinder', dateiPrefix: 'Kinder',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['solo_children', 'family'], depth: 15,
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo_children', 'family'], depth: 25,
         richtung: 'SCHWERPUNKT DIE KINDER: Zeichne fuer jedes Kind ein liebevolles Seelenbild, sein Wesen, seine Energien, Beduerfnisse und Talente, und wie die Eltern es staerken und begleiten koennen. Schreibe aus der begleitenden Elternperspektive. Kein Erwachsenen-Karriere- oder Partnerschaftsteil, keine Jahresprognose.',
         hdRichtung: 'SCHWERPUNKT DIE KINDER: Deute den BodyGraph des Kindes als Anleitung fuer die Eltern, wie sie es typgerecht begleiten.',
       },
@@ -355,7 +355,7 @@ export default function Home() {
       familie: {
         label: 'Familiendynamik', icon: '✦', desc: 'Wie die Energien im System zusammenspielen',
         titel: 'Eure Familiendynamik', dateiPrefix: 'Familiendynamik',
-        systems: ['numerologie', 'humandesign'], konstellationen: ['family'], depth: 15,
+        systems: ['numerologie', 'humandesign'], konstellationen: ['family'], depth: 25,
         richtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Betrachte die Familie als System. Zeige, wie die Energien der einzelnen Mitglieder zusammenspielen, welche Rollen entstehen, wo Reibung liegt und welche Kraefte verbinden. Halte die individuellen Portraits kompakt, das GANZE steht im Zentrum. Keine ausufernden Einzelanalysen.',
         hdRichtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Deute, wie die BodyGraphs der Familienmitglieder aufeinander wirken, wer wen konditioniert und was verbindet.',
       },
@@ -1717,6 +1717,12 @@ ${monthLines}${transitionNote}`;
         ? `\n\nSCHLANKER FOKUS-REPORT (WICHTIG): Dies ist ein fokussierter Report zum Thema «${themeLabel}», NICHT die grosse Gesamtanalyse.\n- «Auf einen Blick» maximal 120 Woerter.\n- Die Fundament-Kapitel «Der zentrale Code», «Dein persoenlicher Lebensweg», «Deine Namen-Energie» und «Herausforderung & Schluessel» werden NICHT als eigene lange Kapitel erstellt. Fasse sie zu EINER kompakten Sektion «Kurz zu dir» zusammen (max. 250 Woerter), nur so viel, wie das Thema braucht.\n- Das gesamte Gewicht und die volle Tiefe liegen auf: ${_theme.kernSektionen}. Diese Kapitel fuehrst du besonders ausfuehrlich, konkret und detailliert aus.\n- Gesamtumfang maximal etwa ${state.depth} Seiten. Kein Fuellmaterial, keine themenfremden Kapitel.`
         : '';
 
+      // Harter Seiten-Cap fuer fokussierte Themen OHNE kernSektionen (Beziehung, Kinder, Familie):
+      // Gesamtbild bleibt bewusst ohne Limit. Alles andere max. ~depth Seiten.
+      const seitenCapInstr = (_theme && state.focus !== 'gesamtbild' && !_theme.kernSektionen)
+        ? `\n\nUMFANG (WICHTIG): Dies ist ein fokussierter Report zum Thema «${themeLabel}», NICHT die grosse Gesamtanalyse. Gesamtumfang maximal etwa ${state.depth} Seiten. Halte die Portraits kompakt und bleib eng am Thema. Lieber dicht und konkret als aufgeblasen, kein Fuellmaterial.`
+        : '';
+
       const intros = {
         de: 'Du bist ein erfahrener Astrologe und Numerologe. Erstelle eine tiefe, persönliche Analyse auf Deutsch, direkt ansprechend (du).',
         en: 'You are an experienced astrologer and numerologist. Create a deep, personal analysis in English, addressing the reader directly (you).',
@@ -2065,7 +2071,7 @@ AUSGABE-REGELN:
 ${langInstr}
 
 KONSTELLATION: ${state.constellation}
-THEMA: ${themeLabel}${themeRichtung ? `\n${themeRichtung}` : ''}${bezLens}${themenBlock}${grunddatenBlock}${schlankerKernInstr}
+THEMA: ${themeLabel}${themeRichtung ? `\n${themeRichtung}` : ''}${bezLens}${themenBlock}${grunddatenBlock}${schlankerKernInstr}${seitenCapInstr}
 ${personBlock(p1, 'PERSON 1')}
 ${p2 ? personBlock(p2, 'PERSON 2') : ''}
 ${compatBlock}
@@ -4181,6 +4187,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               ['kinder', '✧', 'Die Kinder', 'Seelenbild & Energien der Kinder'],
               ['jahresausblick', '◬', 'Jahresausblick', 'Energien & Pinnacles für die kommenden Jahre'],
               ['beruf', '◈', 'Beruf & Berufung', 'Talente, Aufgabe & richtige Umgebung'],
+              ['wohlstand', '◆', 'Geld & Wohlstand', 'Finanztalente, Fülle & Verhältnis zu Geld'],
               ['entscheidung', '⟁', 'Übergänge & Entscheidungen', 'Wegkreuzungen klären, richtig entscheiden'],
               ['familie', '✦', 'Familiendynamik', 'Wie die Energien im System zusammenspielen'],
               ['energie', '△', 'Gesundheit & Energie', 'Energiehaushalt über die Human-Design-Zentren'],
