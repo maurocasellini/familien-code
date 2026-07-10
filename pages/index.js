@@ -305,7 +305,7 @@ export default function Home() {
         label: 'Persönlicher Lebensweg', icon: '◈', desc: 'Lebensphasen, Talente, Muster & Reifung',
         titel: 'Dein persönlicher Lebensweg', dateiPrefix: 'Lebensweg',
         systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 15,
-        module: ['pinnacles', 'layer_a', 'astro_tiefe', 'achsen', 'layer_m', 'layer_l', 'layer_o'],
+        module: ['pinnacles', 'layer_a', 'layer_m', 'layer_l'],
         kernSektionen: 'der biografische Bogen des Lebens (Lebensphasen, Pinnacles & Reifezahl, Lebenszyklen & Wendepunkte), die Talente, die wiederkehrenden Muster und die Schattenseiten sowie das Wachstum daraus',
         richtung: 'SCHWERPUNKT LEBENSWEG (ABGRENZUNG): Dies ist die Biografie der Seele als WEG, nicht das WARUM. Zeichne die Lebensphasen, Pinnacles, die Reifezahl, wiederkehrende Muster, Talente und Schatten und wie die Person darin reift. Das tiefere Sinn-/Missions-Warum gehoert NICHT hierher (eigenes Thema Seelenmission). Keine Jahresprognose Monat-fuer-Monat, keine Berufs-Detailanalyse.',
         hdRichtung: 'SCHWERPUNKT LEBENSWEG: Betone Profil, die Lebensbogen-Linien und die Reifung ueber die Lebensphasen.',
@@ -314,9 +314,9 @@ export default function Home() {
         label: 'Die Seelenmission', icon: '✶', desc: 'Warum du hier bist · Bestimmung & Seelenauftrag',
         titel: 'Deine Seelenmission', dateiPrefix: 'Seelenmission',
         systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 15,
-        module: ['layer_a', 'astro_tiefe', 'achsen', 'layer_g', 'layer_m', 'layer_o'],
+        module: ['layer_a', 'astro_tiefe', 'achsen', 'layer_g'],
         kernSektionen: 'die Seelenaufgabe & der Seelenauftrag (Layer G), die Meisterzahlen, der Mondknoten (Nord/Sued als Weg der Seele), das Lebensthema und die tiefere Bestimmung — das WARUM des Hierseins',
-        richtung: 'SCHWERPUNKT SEELENMISSION (ABGRENZUNG): Dies ist das tiefe WARUM, nicht der biografische Weg. Fokussiere kompromisslos auf Seelenaufgabe, Bestimmung, Meisterzahlen, Nord- und Suedknoten und den groesseren Sinn: wofuer diese Seele hier ist, was sie loesen und geben will. Keine Lebensphasen-Chronik, kein Timing, kein Beruf. Kontemplativ, tief, sinnstiftend.',
+        richtung: 'SCHWERPUNKT SEELENMISSION (ABGRENZUNG): Dies ist das tiefe WARUM, nicht der biografische Weg. Fokussiere kompromisslos auf Seelenaufgabe, Bestimmung, Meisterzahlen, Nord- und Suedknoten und den groesseren Sinn: wofuer diese Seele hier ist, was sie loesen und geben will. Keine Lebensphasen-Chronik, kein Timing, kein Beruf. Kontemplativ, tief, sinnstiftend. Bei den vier Achsen NUR den IC (Wurzeln, Herkunft) und die Mondknoten (Nord/Sued) vertiefen, nicht AC/DC/MC.',
         hdRichtung: 'SCHWERPUNKT SEELENMISSION: Stelle das Inkarnationskreuz als das grosse Lebensthema ins absolute Zentrum, getragen von den Sonnen- und Erd-Toren, plus Profil als Rolle der Seele.',
       },
       kinder: {
@@ -338,9 +338,9 @@ export default function Home() {
         label: 'Beruf & Berufung', icon: '◈', desc: 'Talente, Aufgabe & richtige Umgebung',
         titel: 'Beruf & Berufung', dateiPrefix: 'Beruf',
         systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 15,
-        module: ['layer_a', 'achsen', 'layer_h', 'pj', 'layer_o'],
+        module: ['layer_a', 'achsen', 'layer_h', 'pj'],
         kernSektionen: 'Beruf & Berufung (Layer H), deine Talente und dein Ausdruck, die passende Arbeitsumgebung und das aktuelle Timing fuer berufliche Schritte',
-        richtung: 'SCHWERPUNKT BERUF & BERUFUNG (ABGRENZUNG): Nur die berufliche Achse: Talente, Aufgabe, Arbeitsweise, passende Umfelder, Timing beruflicher Schritte. Nutze Ausdruckszahl und die Lebensaufgabe (MC). KEINE Beziehungs-, Familien- oder allgemeine Seelenwegkapitel.',
+        richtung: 'SCHWERPUNKT BERUF & BERUFUNG (ABGRENZUNG): Nur die berufliche Achse: Talente, Aufgabe, Arbeitsweise, passende Umfelder, Timing beruflicher Schritte. Nutze Ausdruckszahl und die Lebensaufgabe (MC). Bei den vier Achsen NUR den MC (Berufung, oeffentliche Rolle) vertiefen, nicht AC/DC/IC. KEINE Beziehungs-, Familien- oder allgemeine Seelenwegkapitel.',
         hdRichtung: 'SCHWERPUNKT BERUF & BERUFUNG: Leite aus Typ, Strategie, Autoritaet, definierten Kanaelen und Motivation ab, wie diese Person kraftvoll und stimmig arbeitet.',
       },
       entscheidung: {
@@ -349,7 +349,7 @@ export default function Home() {
         systems: ['humandesign', 'numerologie'], konstellationen: ['solo'], depth: 15,
         module: ['pj', 'jahresenergien', 'layer_l', 'layer_o'],
         kernSektionen: 'die aktuellen Zyklen (Persoenliches Jahr, Lebenszyklen & Wendepunkte), der aktuelle Uebergang und der Entscheidungsradar als klaerende Synthese',
-        richtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN (ABGRENZUNG): Eine konkrete Entscheidungs- und Uebergangsbegleitung. Stelle den aktuellen Uebergang und den Entscheidungsweg ins Zentrum, ueber die aktuellen Zyklen (Persoenliches Jahr, 9er-Zyklus, Pinnacle-Wechsel) und den Entscheidungsradar. Klaerend, konkret, wegweisend. Keine breite Charakteranalyse.',
+        richtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN (ABGRENZUNG): Eine konkrete Entscheidungs- und Uebergangsbegleitung. Stelle den aktuellen Uebergang und den Entscheidungsweg ins Zentrum, ueber die aktuellen Zyklen (Persoenliches Jahr, 9er-Zyklus, Pinnacle-Wechsel) und den Entscheidungsradar, der das Herzstueck GENAU dieses Reports ist und in keinem anderen Thema erscheint. Klaerend, konkret, wegweisend. Keine breite Charakteranalyse.',
         hdRichtung: 'SCHWERPUNKT UEBERGAENGE & ENTSCHEIDUNGEN: Stelle Strategie und innere Autoritaet als konkreten Entscheidungsweg ins Zentrum, mit lebensnahen Beispielen fuer aktuelle Weggabelungen.',
       },
       familie: {
@@ -365,9 +365,17 @@ export default function Home() {
         systems: ['humandesign'], konstellationen: ['solo'], depth: 15,
         hdRichtung: 'SCHWERPUNKT GESUNDHEIT & ENERGIE: Gewichte den BodyGraph kompromisslos auf den Energiehaushalt. Deute die definierten vs. offenen Zentren als energetische Lern- und Belastungsfelder, sprich Regeneration und einen gesunden Rhythmus im Sinne der typgerechten Strategie und Autoritaet an. Der Gesundheitskompass ist das Herz dieses Reports. Klar: energetische Selbsterkenntnis, keine medizinische Diagnose oder Therapie.',
       },
+      wohlstand: {
+        label: 'Geld & Wohlstand', icon: '\u25c6', desc: 'Finanztalente, F\u00fclle & Verh\u00e4ltnis zu Geld',
+        titel: 'Geld & Wohlstand', dateiPrefix: 'Wohlstand',
+        systems: ['numerologie'], konstellationen: ['solo'], depth: 15,
+        module: ['layer_a', 'layer_j', 'pj'],
+        kernSektionen: 'Geld & Wohlstand (Layer J), die Finanztalente und das Verhaeltnis zu Geld, Sicherheit und Fuelle, moegliche Fuelle-Blockaden und Hebel, sowie das aktuelle Timing fuer finanzielle Schritte (Persoenliches Jahr)',
+        richtung: 'SCHWERPUNKT GELD & WOHLSTAND (ABGRENZUNG): Nur die finanzielle Achse: das Verhaeltnis zu Geld, Sicherheit und Fuelle, die Finanztalente, Werte und Risikobereitschaft, typische Blockaden und Hebel, plus das Timing finanzieller Schritte ueber das Persoenliche Jahr. Nutze Layer J (Geld & Wohlstand) als Kern, dazu Lebenszahl, Ausdruckszahl und die Werte-Themen (Venus). KEINE Berufs-Detailanalyse (dafuer gibt es das eigene Thema Beruf), keine Beziehungs-, Familien- oder allgemeinen Seelenwegkapitel. Konkret und ehrlich, ermutigend, ohne die Schattenthemen (z.B. Konsum als Flucht) zu beschoenigen. Dies ist energetische Selbsterkenntnis, keine rechtliche oder Anlage-Finanzberatung.',
+      },
     };
     // Reihenfolge der Themen-Kacheln im UI
-    const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'seelenmission', 'kinder', 'jahresausblick', 'beruf', 'entscheidung', 'familie', 'energie'];
+    const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'seelenmission', 'kinder', 'jahresausblick', 'beruf', 'wohlstand', 'entscheidung', 'familie', 'energie'];
 
     // ── FLOW ───────────────────────────────────────────────────────
     function getFlow() {
@@ -2085,8 +2093,10 @@ Jede Sektion beginnt mit dem Titel, dann einem Zeilenumbruch, dann dem Inhalt.
 
 Verwende folgende spezielle Markierungen innerhalb der Sektionen:
 
-Für grosse Zahlen / Codes: [ZAHL:11] oder [ZAHL:11/3]
-Für Personen-Cards (2 nebeneinander): [PERSON-GRID-START] ... [PERSON-CARD:Label|Name|Datum · Zeit · Ort|Sternzeichen|Beschreibung|LZ:11|Pinnacle:9|PersJahr:4] ... [PERSON-GRID-END]
+⚠️ VERBINDLICH: Die Lebenszahl (und alle Kernzahlen) jeder Person stehen VORBERECHNET im Datenblock oben (Feld "- Lebenszahl:"). Verwende AUSSCHLIESSLICH diese Werte, exakt so. Übernimm NIEMALS eine Zahl aus einem Format-Beispiel dieser Anleitung. Berechne die Lebenszahl nicht selbst neu und wende KEINE Einzelziffern-Methode an — der Wert im Datenblock folgt Susanas Blocksummen-Weg (Tag + Monat + ganzes Jahr, reduziert bis ≤21) und ist bindend.
+
+Für grosse Zahlen / Codes: [ZAHL:X] oder [ZAHL:X/Y]  (X = der ECHTE, vorberechnete Wert aus dem Datenblock, NIE der Beispielwert)
+Für Personen-Cards (2 nebeneinander): [PERSON-GRID-START] ... [PERSON-CARD:Label|Name|Datum · Zeit · Ort|Sternzeichen|Beschreibung|LZ:X|Pinnacle:Y|PersJahr:Z] ... [PERSON-GRID-END]
 Für 2-spaltige Info-Karten: [KARTEN-GRID-START] ... [KARTE:Eyebrow|Titel|Untertitel|Beschreibung] ... [KARTEN-GRID-END]
 Für Beziehungs-Dynamik: [DYNAMIK:SIE-Label|SIE-Zahl|ER-Label|ER-Zahl|Resonanz-Text]
 Für astrologische Verbindungen als Karten: [ASTRO-START] ... [ASTRO:Symbol|Titel|Text] ... [ASTRO-END]
@@ -2096,7 +2106,7 @@ Für Pinnacles: [PINNACLE:Person|Nummer|Zeitraum|Zahl|Beschreibung|Challenge]. I
 Für Namen-Numerologie Cards: [NAMEN-GRID-START] ... [NAMEN-CARD:Name|Rolle|Seelendrang-Zahl|Seelendrang-Label|Pers-Zahl|Pers-Label|Ausdruck-Zahl|Ausdruck-Label|Beschreibung] ... [NAMEN-GRID-END]
 PFLICHTREGELN für NAMEN-CARD:
 - Name = vollständiger Name in normaler Schreibweise, KEINE Bindestriche zwischen Buchstaben (richtig: "Mauro Casellini", falsch: "M-A-U-R-O")
-- Rolle = kurze Bezeichnung wie "Vollständiger Name · Lebenszahl 11" oder "Vorname" oder "Nachname"
+- Rolle = kurze Bezeichnung wie "Vollständiger Name · Lebenszahl <ECHTE ZAHL>" oder "Vorname" oder "Nachname" — setze die ECHTE, vorberechnete Lebenszahl aus dem Datenblock ein, NIEMALS eine Beispielzahl
 - Alle drei Zahlenpaare (Seelendrang, Persönlichkeit, Ausdruck) MÜSSEN echte berechnete Zahlen enthalten — niemals "—" oder leer lassen
 - Berechne die Zahlen selbst aus dem Namen nach dem pythagoreischen System (A=1,B=2,...,I=9,J=1,...)
 - Beispiel korrekt: [NAMEN-CARD:Mauro Casellini|Vollständiger Name|1|Pionier|4|Struktur|5|Freiheit|Beschreibung hier]
