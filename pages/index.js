@@ -360,9 +360,12 @@ export default function Home() {
         hdRichtung: 'SCHWERPUNKT FAMILIENDYNAMIK: Deute, wie die BodyGraphs der Familienmitglieder aufeinander wirken, wer wen konditioniert und was verbindet.',
       },
       energie: {
-        label: 'Gesundheit & Energie', icon: '△', desc: 'Energiehaushalt über die HD-Zentren',
+        label: 'Gesundheit & Energie', icon: '△', desc: 'Energiehaushalt, Vitalität & Regeneration',
         titel: 'Gesundheit & Energie', dateiPrefix: 'Gesundheit',
-        systems: ['humandesign'], konstellationen: ['solo'], depth: 15,
+        systems: ['humandesign', 'numerologie'], konstellationen: ['solo'], depth: 15,
+        module: ['layer_a', 'astro_tiefe', 'layer_m'],
+        kernSektionen: 'der Energiehaushalt und die Vitalitaet (Konstitution, Antrieb, Stress- und Erschoepfungsmuster), die Kraftquellen und die Regeneration sowie ein gesunder Rhythmus von Aktivitaet und Ruhe',
+        richtung: 'SCHWERPUNKT GESUNDHEIT & ENERGIE (ABGRENZUNG): Deute Vitalitaet, Energiehaushalt und Regeneration aus Numerologie und Astrologie. Welche Zahlen (u.a. Lebenszahl, Ausdruckszahl) deuten auf Konstitution, Antrieb und Stressmuster, wo liegen die Kraftquellen und wo die Erschoepfungsfallen, welcher Rhythmus von Aktivitaet und Ruhe traegt. Nutze Mars (Antrieb, Koerperkraft) und die koerperbezogenen Themen. Konkret zu Selbstfuersorge und gesundem Rhythmus. KEINE Beziehungs-, Berufs- oder allgemeinen Seelenwegkapitel. Klar: energetische Selbsterkenntnis, KEINE medizinische Diagnose oder Therapie.',
         hdRichtung: 'SCHWERPUNKT GESUNDHEIT & ENERGIE: Gewichte den BodyGraph kompromisslos auf den Energiehaushalt. Deute die definierten vs. offenen Zentren als energetische Lern- und Belastungsfelder, sprich Regeneration und einen gesunden Rhythmus im Sinne der typgerechten Strategie und Autoritaet an. Der Gesundheitskompass ist das Herz dieses Reports. Klar: energetische Selbsterkenntnis, keine medizinische Diagnose oder Therapie.',
       },
       wohlstand: {
@@ -4214,7 +4217,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               ['wohlstand', '◆', 'Geld & Wohlstand', 'Finanztalente, Fülle & Verhältnis zu Geld'],
               ['entscheidung', '⟁', 'Übergänge & Entscheidungen', 'Wegkreuzungen klären, richtig entscheiden'],
               ['familie', '✦', 'Familiendynamik', 'Wie die Energien im System zusammenspielen'],
-              ['energie', '△', 'Gesundheit & Energie', 'Energiehaushalt über die Human-Design-Zentren'],
+              ['energie', '△', 'Gesundheit & Energie', 'Energiehaushalt, Vitalität & Regeneration'],
             ].map(([value, icon, title, desc]) => (
               <div className="select-card" data-card-type="theme" data-value={value} key={value}>
                 <div className="card-top"><div className="card-icon">{icon}</div><div className="card-check">✓</div></div>
