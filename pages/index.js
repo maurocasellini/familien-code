@@ -378,19 +378,21 @@ export default function Home() {
     const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'seelenmission', 'kinder', 'jahresausblick', 'beruf', 'wohlstand', 'entscheidung', 'familie', 'energie'];
 
     // ── FLOW ───────────────────────────────────────────────────────
+    // Effektiv erlaubte Konstellationen eines Themas (bei Human Design nur solo/pair).
+    function effKonst(t) {
+      let k = (t && t.konstellationen ? t.konstellationen.slice() : []);
+      if (state.system === 'humandesign') k = k.filter(v => v === 'solo' || v === 'pair');
+      return k;
+    }
     function getFlow() {
-      // NEU: Das Thema ist Schritt 1 und steuert alles. Danach System (nur wenn
-      // mehrere passen), dann Fuer wen (nur wenn mehrere passen), dann Daten.
-      // Kein Art- und kein Detailtiefe-Screen mehr: Art = auto, Tiefe = fix pro Thema.
-      let front = ['splash', 'theme'];
+      // NEU (System-first): System ist Schritt 1, dann Thema, dann Fuer-wen, dann Daten.
+      let front = ['splash', 'mode'];
+      if (!state.system) return front;
+      front.push('theme');
       const t = THEMEN[state.focus];
       if (!t) return front;
 
-      // System-Schritt nur, wenn das Thema mehrere Systeme zulaesst.
-      if (t.systems.length > 1) front.push('mode');
-      if (!state.system) return front;
-
-      const showKonst = t.konstellationen.length > 1;
+      const showKonst = effKonst(t).length > 1;
 
       if (state.system === 'humandesign') {
         // Human Design: eigenstaendiger BodyGraph. Einzel oder Paar (Connection).
@@ -425,16 +427,10 @@ export default function Home() {
       state.focus = id;
       state.depth = t.depth;
       state.art = 'standard';
-      // System: bei nur einem moeglichen sofort setzen, sonst zuruecksetzen (Wahl folgt).
-      if (t.systems.length === 1) {
-        state.system = t.systems[0];
-        state.mode = state.system === 'humandesign' ? 'humandesign' : 'full';
-      } else {
-        state.system = '';
-        state.mode = '';
-      }
+      // System-first: System ist bereits gewaehlt, NICHT ueberschreiben.
+      const kk = effKonst(t);
       // Konstellation: bei nur einer moeglichen sofort setzen, sonst zuruecksetzen (Wahl folgt).
-      state.constellation = t.konstellationen.length === 1 ? t.konstellationen[0] : '';
+      state.constellation = kk.length === 1 ? kk[0] : '';
     }
 
     let cur = 'splash';
@@ -461,13 +457,32 @@ export default function Home() {
       // Human Design kann (noch) nur Einzel oder Paar: Familie/Alleinerziehend
       // auf dem Konstellations-Screen ausblenden, sonst wieder einblenden.
       // Kurzprofil gibt es nur fuer Numerologie -> Karte bei Human Design ausblenden.
-      // System-Screen: nur die Systeme zeigen, die zum Thema passen ("nur was passt").
+      // System-first: System-Screen ist Schritt 1 -> immer beide Methoden zeigen.
       if (id === 'mode') {
-        const t = THEMEN[state.focus];
-        const allowed = t ? t.systems : ['numerologie', 'humandesign'];
         document.querySelectorAll('#screen-mode .select-card').forEach(card => {
-          card.style.display = allowed.includes(card.dataset.value) ? '' : 'none';
+          card.style.display = ['numerologie', 'humandesign'].includes(card.dataset.value) ? '' : 'none';
         });
+      }
+      // Themen-Screen: nur Themen zeigen, die zum gewaehlten System passen.
+      // Human Design bewusst nur ganzheitlich (Gesamtbild) + Gesundheit & Energie.
+      if (id === 'theme') {
+        const sys = state.system || 'numerologie';
+        const hdAllowed = ['gesamtbild', 'energie'];
+        document.querySelectorAll('#screen-theme .select-card').forEach(card => {
+          const key = card.dataset.value;
+          const th = THEMEN[key];
+          let show = !!(th && (th.systems || []).includes(sys));
+          if (sys === 'humandesign') show = hdAllowed.includes(key);
+          card.style.display = show ? '' : 'none';
+          if (!show) card.classList.remove('selected');
+        });
+        const curT = THEMEN[state.focus];
+        const stillValid = curT && (sys === 'humandesign' ? hdAllowed.includes(state.focus) : (curT.systems || []).includes(sys));
+        if (!stillValid) {
+          state.focus = '';
+          const btn = document.getElementById('btn-theme-next');
+          if (btn) btn.disabled = true;
+        }
       }
       if (id === 'constellation') {
         const t = THEMEN[state.focus];
@@ -2208,7 +2223,7 @@ ${hasAncestry ? `18. Die Ahnenlinie, mindestens 1500 Wörter. Analysiere mit den
 20. Die Essenz, ein einziger Satz, mit [ESSENZ:Text]` : `19. Die Essenz, ein einziger Satz, mit [ESSENZ:Text]`}
 
 ${state.ritual ? `\nZUSAETZLICHE SEKTION (PFLICHT) — platziere sie als VORLETZTE Sektion, direkt vor der Essenz, mit ~~~ abgetrennt wie alle anderen Sektionen. Titelzeile: Ritual & Affirmationen\nInhalt${hasPair ? ` — schreibe getrennte, gleichwertige Bloecke fuer ${p1.firstName || 'Person 1'} und ${p2?.firstName || 'Person 2'}` : ''}:\n(a) Kurze Hinfuehrung (ca. 120 Woerter): wie aus den persoenlichen Zahlen (Lebenszahl, Seelendrang, Persoenlichkeit, Ausdruck, aktuelles Persoenliches Jahr) Affirmationen und ein Ritual entstehen.\n(b) Genau 7 persoenliche Affirmationen, abgeleitet aus den KONKRETEN Zahlen dieser Person. Jede in Ich-Form, ein kraftvoller Satz, jede auf einer EIGENEN Zeile, mit einer Leerzeile dazwischen, beginnend mit "✦ ". Sie staerken die Lichtseiten der Zahlen und gleichen die Schatten sanft aus.\n(c) Ein persoenliches Jahresritual (2 bis 3 Absaetze), passend zum aktuellen Persoenlichen Jahr: konkret und einfach umsetzbar (Zeitpunkt, Ablauf, Bedeutung), die Energie des Jahres unterstuetzend.\nKein Tarot, keine Kartennamen, keine Methodik offenlegen. Warmer, ermutigender Ton.\n` : ''}Schreibe tief, präzise, persönlich. Keine generischen Aussagen. Zahlen und astrologische Fakten exakt aus den gegebenen Daten ableiten.
-WICHTIG: Verwende die strukturierten Tags konsequent. Fliesstext darf **fett** und *kursiv* enthalten.
+WICHTIG: Verwende die strukturierten Tags konsequent. Fliesstext darf **fett** und *kursiv* enthalten. UNTERUEBERSCHRIFTEN (z.B. ein Personenname als Abschnittskopf innerhalb einer Sektion) schreibst du IMMER einheitlich als eigene Zeile im Format «### Vorname Nachname» (drei Rauten, Leerzeichen, Name) — NIEMALS mit ** umschlossen, NIEMALS als eigene ~~~-Sektion. Alle Personen in derselben Sektion bekommen exakt dasselbe Format, damit die Darstellung sauber und gleich ist.
 EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CHF 200+ verkauft, sie muss diesem Preis entsprechen. Lieber zu lang als zu kurz. Wenn du Token-Budget hast, nutze es.`;
     }
 
@@ -2721,6 +2736,14 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
           continue;
         }
 
+        // Standalone Unterueberschrift (z.B. ein Personenname auf eigener Zeile):
+        // vereinheitlicht «### Name», «**Name**» oder «__Name__» zu EINEM sauberen Sub-Titel.
+        const subheadMatch = line.match(/^(?:#{1,4}\s+(.+?)|\*\*(.+?)\*\*|__(.+?)__)\s*$/);
+        if (line && !line.startsWith('[') && subheadMatch) {
+          const headText = (subheadMatch[1] || subheadMatch[2] || subheadMatch[3] || '').replace(/[*#_]/g, '').trim();
+          if (headText) { out += `<div class="res-subhead">${esc(headText)}</div>`; i++; continue; }
+        }
+
         // Normal text — group consecutive lines into paragraphs, apply markdown
         if (line && !line.startsWith('[')) {
           // Collect consecutive non-empty, non-tag lines as one paragraph
@@ -2786,7 +2809,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       body.dataset.rawText = text;  // store for DOCX export
       body.innerHTML = secs.map((sec, idx) => {
         const lines = sec.split('\n');
-        const titleRaw = lines[0].replace(/^#+\s*/, '').trim();
+        const titleRaw = lines[0].replace(/^#+\s*/, '').replace(/^\*\*(.*)\*\*$/, '$1').replace(/\*\*/g, '').trim();
         const bodyText = lines.slice(1).join('\n').trim();
         const orn = idx < secs.length - 1 ? `<div class="result-ornament">✦ ✦ ✦</div>` : '';
         const info = getSectionInfo(titleRaw);
@@ -3522,6 +3545,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
           .result-text { font-family: 'Playfair Display', serif; font-size: 18px; line-height: 1.9; color: var(--ink); white-space: pre-wrap; }
           .result-body-inner { }
           .res-p { font-family: 'Playfair Display', serif; font-size: 18px; line-height: 1.9; color: var(--ink); margin-bottom: 14px; }
+          .res-subhead { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 600; color: var(--rose); margin: 30px 0 10px; letter-spacing: 0.01em; }
 
           .result-ornament { text-align: center; color: var(--rose-pale); font-size: 14px; letter-spacing: 16px; margin: 10px 0 52px; }
           .result-actions { background: var(--paper-deep); border-top: 1px solid var(--gold-pale); padding: 36px 56px; display: flex; align-items: center; gap: 24px; }
@@ -3806,7 +3830,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       <div className="screen" id="screen-mode">
         <div className="form-page">
           <div className="form-page-header">
-            <div className="form-eyebrow">Schritt 2 · Methode</div>
+            <div className="form-eyebrow">Schritt 1 · Methode</div>
             <h2 className="form-h2">Welche Methode<br/>möchtest du nutzen?</h2>
             <p className="form-sub">Die numerologische Analyse oder Human Design. Sie bestimmt, welche Berechnungen laufen.</p>
           </div>
@@ -4174,9 +4198,9 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       <div className="screen" id="screen-theme">
         <div className="form-page">
           <div className="form-page-header">
-            <div className="form-eyebrow">Schritt 1 · Thema</div>
+            <div className="form-eyebrow">Schritt 2 · Thema</div>
             <h2 className="form-h2">Worum geht es<br/>in dieser Analyse?</h2>
-            <p className="form-sub">Wähle das Thema. Es bestimmt die passenden Methoden, für wen die Analyse ist und in welche Richtung der Bericht geht.</p>
+            <p className="form-sub">Wähle das Thema. Es bestimmt, für wen die Analyse ist und in welche Richtung der Bericht geht.</p>
           </div>
           <div className="card-grid-2-3">
             {[
