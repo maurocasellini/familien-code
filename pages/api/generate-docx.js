@@ -284,8 +284,8 @@ function stripSimpleMarkers(text) {
   t = t.replace(/\[ZAHL:([^\]]+)\]/g, (_, num) => `\n**⟨ ${num} ⟩**\n`);
   t = t.replace(/\[PJ-HEADER:([^|]+)\|([^|]+)\|([^\]]+)\]/g, (_, titel, zahl, zeitraum) =>
     `\n**${titel.toUpperCase()}** · ${zahl}\n*${zeitraum}*\n`);
-  t = t.replace(/\[QUARTAL:([^|]+)\|([^\]]+)\]/g, (_, titel, zeit) =>
-    `\n**${titel}** (${zeit})\n`);
+  // [QUARTAL] und [MONAT]/[MONAT-HIGHLIGHT] werden block-level in bodyToBlocks gerendert.
+  // [HIGHLIGHT-MONAT] bleibt als Fallback (alte Aufzählungs-Darstellung) erhalten.
   t = t.replace(/\[HIGHLIGHT-MONAT:([^|]+)\|([^|]+)\|([^\]]+)\]/g, (_, monat, zahl, label) =>
     `  • **${monat}** (PM ${zahl}): ${label}`);
   t = t.replace(/\n{3,}/g, '\n\n');
@@ -327,6 +327,28 @@ function emitText(text, out, tx) {
       // Markdown-Ueberschrift (#, ##, ### ...)
       const h = line.match(/^\s*(#{1,6})\s+(.+)$/);
       if (h) { flush(); out.push(headingParagraph(h[2], h[1].length, tx)); return; }
+      // Monats-Unterkapitel automatisch erkennen — auch aus alten Bullet-/★-Zeilen
+      // Formen:  "•  Monat Jahr (PM X): Text"  /  "★ Monat Jahr (PM X): Text"  /  "**Monat Jahr** (PM X): Text"
+      const MON = 'Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember';
+      const mo = line.match(new RegExp(
+        `^\\s*(★)?\\s*(?:[-*•]\\s*)?(?:\\*\\*)?\\s*(${MON})\\s+(\\d{4})\\s*(?:\\*\\*)?\\s*\\(PM\\s*([0-9]+)\\)\\s*[:–-]\\s*(.+)$`));
+      if (mo) {
+        flush();
+        const highlight = !!mo[1] || ['11', '22', '33'].includes(mo[4]);
+        const rest = mo[5].trim();
+        const sen = rest.match(/^(.*?[.!?])\s+(.+)$/);
+        const titel = (sen ? sen[1] : rest).replace(/[.!?]+$/, '').replace(/\*\*/g, '').trim();
+        const body = sen ? sen[2].trim() : '';
+        buildMonthChapter(`${mo[2]} ${mo[3]}`, mo[4], titel, body, highlight, tx).forEach(x => out.push(x));
+        return;
+      }
+      // Quartals-Zwischenüberschrift automatisch erkennen — "Titel (Monat Jahr bis Monat Jahr)"
+      const qm = line.match(/^\s*(?:\*\*)?\s*([^*()\n]{3,70}?)\s*(?:\*\*)?\s*\(([^)]*\d{4}[^)]*)\)\s*$/);
+      if (qm && !/PM/.test(line) && new RegExp(`(${MON})`).test(qm[2])) {
+        flush();
+        buildQuartalHeading(qm[1].trim(), qm[2].trim(), tx).forEach(x => out.push(x));
+        return;
+      }
       // Aufzaehlung (-, *, • am Zeilenanfang)
       const b = line.match(/^\s*[-*•]\s+(.+)$/);
       if (b) {
@@ -411,6 +433,57 @@ function buildKartenGrid(cards, tx) {
   return blocks;
 }
 
+// Quartal-Zwischenüberschrift — gruppiert die Monats-Unterkapitel darunter.
+// Marker: [QUARTAL:Titel|Zeitraum]
+function buildQuartalHeading(titel, zeit, tx) {
+  return [
+    new Paragraph({
+      spacing: { before: 400, after: 30 },
+      children: [new TextRun({ text: tx(titel), font: 'Playfair Display', size: 30, color: C.rose })],
+    }),
+    new Paragraph({
+      spacing: { before: 0, after: 180 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: C.rosePale, space: 4 } },
+      children: [new TextRun({ text: tx(zeit), italics: true, size: 20, color: C.muted, font: 'Georgia' })],
+    }),
+  ];
+}
+
+// Monats-Unterkapitel — jeder Monat als eigener, klar getrennter Block:
+// Eyebrow (MONAT JAHR · PM X) · kursiver Untertitel · Fliesstext, mit Akzentlinie links.
+// Marker: [MONAT:Monat Jahr|PM-Zahl|Kurztitel|Fliesstext]
+//         [MONAT-HIGHLIGHT:...] für besondere Monate (eigene Lebenszahl, Meisterzahlen).
+function buildMonthChapter(monat, zahl, titel, text, highlight, tx) {
+  const accent = highlight ? C.gold : C.roseLight;
+  const blocks = [];
+
+  const eyebrowRuns = [];
+  if (highlight) eyebrowRuns.push(new TextRun({ text: '★  ', size: 16, color: C.gold, font: 'Georgia' }));
+  eyebrowRuns.push(new TextRun({
+    text: `${tx(monat).toUpperCase()} · PM ${tx(zahl)}`,
+    bold: true, size: 15, color: accent, font: 'Raleway',
+  }));
+  blocks.push(new Paragraph({ spacing: { before: 280, after: 24 }, children: eyebrowRuns }));
+
+  blocks.push(new Paragraph({
+    spacing: { before: 0, after: 90 },
+    indent: { left: 200 },
+    border: { left: { style: BorderStyle.SINGLE, size: highlight ? 24 : 14, color: accent, space: 14 } },
+    children: [new TextRun({ text: tx(titel), font: 'Playfair Display', size: 30, italics: true, color: C.rose })],
+  }));
+
+  const proseLines = String(text || '').split('\n').map(l => l.trim()).filter(Boolean);
+  if (proseLines.length) {
+    const children = [];
+    proseLines.forEach((ln, i) => {
+      if (i > 0) children.push(new TextRun({ break: 1 }));
+      children.push(...parseInlineRuns(ln, tx));
+    });
+    blocks.push(new Paragraph({ spacing: { before: 0, after: 150, line: 320 }, indent: { left: 200 }, children }));
+  }
+  return blocks;
+}
+
 // MAIN: parse body text into docx blocks (Paragraphs + Tables)
 function bodyToBlocks(bodyText, tx) {
   const out = [];
@@ -422,6 +495,8 @@ function bodyToBlocks(bodyText, tx) {
     const pinnacleMatch = remaining.match(/\[PINNACLE:([^\]]+)\]/);
     const essenzMatch = remaining.match(/\[ESSENZ:([^\]]+)\]/);
     const kartenGridMatch = remaining.match(/\[KARTEN-GRID-START\]([\s\S]*?)\[KARTEN-GRID-END\]/);
+    const quartalMatch = remaining.match(/\[QUARTAL:([^|\]]+)\|([^\]]+)\]/);
+    const monthMatch = remaining.match(/\[MONAT(-HIGHLIGHT)?:([^\]]+)\]/);
 
     const candidates = [
       yearTblMatch && { kind: 'year', match: yearTblMatch, index: yearTblMatch.index },
@@ -429,6 +504,8 @@ function bodyToBlocks(bodyText, tx) {
       pinnacleMatch && { kind: 'pinnacle', match: pinnacleMatch, index: pinnacleMatch.index },
       essenzMatch && { kind: 'essenz', match: essenzMatch, index: essenzMatch.index },
       kartenGridMatch && { kind: 'karten', match: kartenGridMatch, index: kartenGridMatch.index },
+      quartalMatch && { kind: 'quartal', match: quartalMatch, index: quartalMatch.index },
+      monthMatch && { kind: 'month', match: monthMatch, index: monthMatch.index },
     ].filter(Boolean).sort((a, b) => a.index - b.index);
 
     if (candidates.length === 0) {
@@ -461,6 +538,17 @@ function bodyToBlocks(bodyText, tx) {
       const inner = next.match[1] || '';
       const cards = [...inner.matchAll(/\[KARTE:([^\]]+)\]/g)].map(m => m[1]);
       if (cards.length > 0) buildKartenGrid(cards, tx).forEach(b => out.push(b));
+      remaining = remaining.slice(next.index + next.match[0].length);
+    } else if (next.kind === 'quartal') {
+      buildQuartalHeading(next.match[1].trim(), next.match[2].trim(), tx).forEach(b => out.push(b));
+      remaining = remaining.slice(next.index + next.match[0].length);
+    } else if (next.kind === 'month') {
+      const highlight = !!next.match[1];
+      const parts = next.match[2].split('|');
+      buildMonthChapter(
+        (parts[0] || '').trim(), (parts[1] || '').trim(), (parts[2] || '').trim(),
+        parts.slice(3).join('|').trim(), highlight, tx,
+      ).forEach(b => out.push(b));
       remaining = remaining.slice(next.index + next.match[0].length);
     }
   }
