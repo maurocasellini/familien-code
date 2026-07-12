@@ -52,24 +52,40 @@ function sanitize(part) {
     .trim();
 }
 
-// Baut den Ordnernamen: K-0001_Nachname_Vorname
-function buildFolderName({ kundennummer, nachname, vorname }) {
-  return [kundennummer, nachname, vorname].map(sanitize).join('_');
+// Wandelt ein Geburtsdatum TT.MM.JJJJ in JJJJ-MM-TT (sortierbar, eindeutig).
+// Andere Eingaben werden nur bereinigt zurueckgegeben.
+function normDate(d) {
+  const s = String(d == null ? '' : d).trim();
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+  return sanitize(s);
+}
+
+// Baut den Ordnernamen: Nachname_Vorname_JJJJ-MM-TT
+// Leere Bestandteile (z. B. fehlendes Geburtsdatum) fallen sauber weg.
+function buildFolderName({ nachname, vorname, geburtsdatum }) {
+  return [nachname, vorname, normDate(geburtsdatum)]
+    .map(sanitize)
+    .filter(Boolean)
+    .join('_');
 }
 
 // Baut den Dateinamen ohne Kollisionssuffix (das kommt spaeter dazu).
 // typ:        'vollständige-analyse' | 'individuelle-analyse' | 'human-design'
 // auftragstyp: optional, nur bei individueller Analyse (z. B. 'beziehung')
 function buildBaseName({
-  kundennummer,
   nachname,
   vorname,
+  geburtsdatum,
   typ,
   auftragstyp,
   datum,
 }) {
-  const folder = buildFolderName({ kundennummer, nachname, vorname });
-  const parts = [folder, datum, sanitize(typ)];
+  const folder = buildFolderName({ nachname, vorname, geburtsdatum });
+  const parts = [folder, datum, sanitize(typ)].filter(Boolean);
   const at = sanitize(auftragstyp);
   if (at) parts.push(at);
   return parts.join('_');
@@ -165,7 +181,7 @@ async function resolveFreeName(drive, base, parentId, now) {
  */
 async function uploadAnalysis({
   buffer,
-  kundennummer,
+  geburtsdatum,
   nachname,
   vorname,
   typ,
@@ -173,20 +189,20 @@ async function uploadAnalysis({
   datum, // optional; Default heutiges Datum in Europe/Zurich
 }) {
   if (!buffer || !buffer.length) throw new Error('Drive-Archiv: leerer Buffer.');
-  if (!kundennummer) throw new Error('Drive-Archiv: kundennummer fehlt.');
+  if (!nachname && !vorname) throw new Error('Drive-Archiv: Name fehlt.');
 
   const drive = getDrive();
   const now = DateTime.now().setZone(ZONE);
   const dateStr = datum || now.toFormat('yyyy-LL-dd');
 
   const rootId = await getRootFolderId(drive);
-  const folderName = buildFolderName({ kundennummer, nachname, vorname });
+  const folderName = buildFolderName({ nachname, vorname, geburtsdatum });
   const folderId = await findOrCreateFolder(drive, folderName, rootId);
 
   const base = buildBaseName({
-    kundennummer,
     nachname,
     vorname,
+    geburtsdatum,
     typ,
     auftragstyp,
     datum: dateStr,

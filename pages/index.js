@@ -774,7 +774,6 @@ export default function Home() {
         <div class="field-row">
           <div class="field-group">
             <label class="field-label">Vorname/n (Taufname)</label>
-            ${prefix === 'p1' ? `<div class="field"><label class="field-label">Kundennummer</label><input class="field-input" id="p1-kundennummer" placeholder="z. B. K-0001" /></div>` : ''}
             <input class="field-input" id="${prefix}-firstname" placeholder="Taufname/n" />
           </div>
           <div class="field-group">
@@ -2841,10 +2840,10 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       if (!rawText) { alert('Noch keine Analyse vorhanden.'); return; }
       const nameEl = document.getElementById('result-name');
       const name = nameEl?.textContent?.trim() || 'Deine Analyse';
-      // Archiv-Metadaten fuer Google Drive
-      const kundennummer = val('p1-kundennummer');
+      // Archiv-Metadaten fuer Google Drive (Identifikation: Name + Geburtsdatum)
       const vorname = val('p1-firstname');
       const nachname = val('p1-lastname');
+      const geburtsdatum = val('p1-birthdate');
       const modeToTyp = { full: 'vollständige-analyse', individual: 'individuelle-analyse', humandesign: 'human-design', humandesign_individual: 'human-design', kurzprofil: 'kurzprofil' };
       const analyseTyp = modeToTyp[state.mode] || 'analyse';
       const auftragstyp = (state.mode === 'individual' && THEMEN[state.focus]) ? (THEMEN[state.focus].dateiPrefix || state.focus) : undefined;
@@ -2855,7 +2854,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const res = await fetch('/api/generate-docx', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rawText, name, kundennummer, nachname, vorname, analyseTyp, auftragstyp, language: state.language, title: ((THEMEN[state.focus] && THEMEN[state.focus].titel) || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : ({ full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' })[state.mode])) || undefined, subtitle: reportDescriptor(true) }),
+          body: JSON.stringify({ rawText, name, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, language: state.language, title: ((THEMEN[state.focus] && THEMEN[state.focus].titel) || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : ({ full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' })[state.mode])) || undefined, subtitle: reportDescriptor(true) }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
