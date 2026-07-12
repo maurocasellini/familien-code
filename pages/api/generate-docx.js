@@ -477,7 +477,7 @@ const LOCALE_LABELS = {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { rawText, name, language, title, subtitle } = req.body || {};
+  const { rawText, name, language, title, subtitle, kundennummer, nachname, vorname, analyseTyp, auftragstyp } = req.body || {};
   if (!rawText || typeof rawText !== 'string') return res.status(400).json({ error: 'Missing rawText' });
 
   const lang = (language === 'en' || language === 'pt') ? language : 'de';
@@ -560,6 +560,19 @@ export default async function handler(req, res) {
 
   try {
     const buffer = await Packer.toBuffer(doc);
+    // --- Google-Drive-Archiv (nicht blockierend, laeuft VOR dem Senden) ---
+    if (kundennummer && (nachname || vorname)) {
+      try {
+        const { uploadAnalysis } = require('../../drive');
+        await uploadAnalysis({
+          buffer, kundennummer, nachname, vorname,
+          typ: analyseTyp || 'analyse',
+          auftragstyp: auftragstyp || undefined,
+        });
+      } catch (e) {
+        console.error('Drive-Archiv fehlgeschlagen:', e.message);
+      }
+    }
     const safeName = displayName.replace(/[^a-zA-Z0-9_\- ]+/g, '').replace(/\s+/g, '_') || 'Analyse';
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="Familien-Code_${safeName}.docx"`);
