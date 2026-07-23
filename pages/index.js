@@ -24,6 +24,7 @@ export default function Home() {
       auftragPreset: '',               // gewähltes Preset im Individuell-Modus
       auftragAstro: true,              // Astrologie-Layer im Individuell-Modus
       analysisDate: '',                // zentrales Stichdatum der Analyse (leer = heute); steuert PJ, PM, Persönlicher Tag, Alter, Zyklen
+      fromJob: false,                  // Ergebnis stammt aus einem Hintergrund-Auftrag (Datei liegt schon im Drive)
     };
 
     // ── PERSONENVERGLEICH: BEZIEHUNGSTYPEN (nur bei Konstellation 'pair') ──
@@ -387,21 +388,46 @@ export default function Home() {
       if (state.system === 'humandesign') k = k.filter(v => v === 'solo' || v === 'pair');
       return k;
     }
+    // Fuer das System ueberhaupt moegliche Konstellationen (Fuer-wen-Schritt).
+    // Numerologie: alle vier. Human Design: nur Einzel und Paar (Connection).
+    function konstFor(system) {
+      return (system === 'humandesign')
+        ? ['solo', 'pair']
+        : ['solo', 'pair', 'family', 'solo_children'];
+    }
+    // Themen, die zu (System + gewaehlter Konstellation) passen -> Was-Schritt.
+    // "nur was Sinn macht": ein Thema erscheint nur, wenn es das System UND die
+    // gewaehlte Konstellation zulaesst. Ohne gewaehlte Konstellation: alle system-gueltigen.
+    function validThemes() {
+      const sys = state.system || 'numerologie';
+      const konst = state.constellation;
+      const hd = sys === 'humandesign';
+      // Human Design bleibt bewusst schlank: solo => Gesamtbild + Gesundheit & Energie,
+      // pair => Beziehungsdynamik (Connection Chart). Sonst nichts.
+      const hdAllowed = (konst === 'pair') ? ['beziehung'] : ['gesamtbild', 'energie'];
+      return THEMEN_ORDER.filter(key => {
+        const th = THEMEN[key];
+        if (!th) return false;
+        if (hd && !hdAllowed.includes(key)) return false;
+        if (!(th.systems || []).includes(sys)) return false;
+        if (!konst) return true;
+        return effKonst(th).includes(konst);
+      });
+    }
     function getFlow() {
-      // NEU (System-first): System ist Schritt 1, dann Thema, dann Fuer-wen, dann Daten.
+      // Reihenfolge: System (mode) -> Fuer wen (constellation) -> Was (theme) -> Daten.
       let front = ['splash', 'mode'];
       if (!state.system) return front;
+      front.push('constellation');
+      if (!state.constellation) return front;
       front.push('theme');
       const t = THEMEN[state.focus];
       if (!t) return front;
-
-      const showKonst = effKonst(t).length > 1;
 
       if (state.system === 'humandesign') {
         // Human Design: eigenstaendiger BodyGraph. Einzel oder Paar (Connection).
         const hdPair = state.constellation === 'pair';
         let f = [...front];
-        if (showKonst) f.push('constellation');
         f.push('person1');
         if (hdPair) f.push('person2', 'vergleich');
         f.push('loading', 'result');
@@ -412,7 +438,6 @@ export default function Home() {
       const hasPair = state.constellation === 'pair' || state.constellation === 'family';
       const hasKids = state.constellation === 'family' || state.constellation === 'solo_children';
       let f = [...front];
-      if (showKonst) f.push('constellation');
       f.push('person1');
       if (hasPair) f.push('person2');
       if (state.constellation === 'pair') f.push('vergleich');
@@ -430,10 +455,7 @@ export default function Home() {
       state.focus = id;
       state.depth = t.depth;
       state.art = 'standard';
-      // System-first: System ist bereits gewaehlt, NICHT ueberschreiben.
-      const kk = effKonst(t);
-      // Konstellation: bei nur einer moeglichen sofort setzen, sonst zuruecksetzen (Wahl folgt).
-      state.constellation = kk.length === 1 ? kk[0] : '';
+      // System UND Konstellation sind bereits gewaehlt (Schritt 1 + 2) -> NICHT ueberschreiben.
     }
 
     let cur = 'splash';
@@ -469,30 +491,36 @@ export default function Home() {
       // Themen-Screen: nur Themen zeigen, die zum gewaehlten System passen.
       // Human Design bewusst nur ganzheitlich (Gesamtbild) + Gesundheit & Energie.
       if (id === 'theme') {
-        const sys = state.system || 'numerologie';
-        const hdAllowed = ['gesamtbild', 'energie'];
+        // Was-Schritt (jetzt Schritt 3): nur Themen zeigen, die zum gewaehlten System
+        // UND zur gewaehlten Konstellation passen ("nur was Sinn macht").
+        const valid = validThemes();
+        const validSet = new Set(valid);
         document.querySelectorAll('#screen-theme .select-card').forEach(card => {
-          const key = card.dataset.value;
-          const th = THEMEN[key];
-          let show = !!(th && (th.systems || []).includes(sys));
-          if (sys === 'humandesign') show = hdAllowed.includes(key);
+          const show = validSet.has(card.dataset.value);
           card.style.display = show ? '' : 'none';
           if (!show) card.classList.remove('selected');
         });
-        const curT = THEMEN[state.focus];
-        const stillValid = curT && (sys === 'humandesign' ? hdAllowed.includes(state.focus) : (curT.systems || []).includes(sys));
-        if (!stillValid) {
+        // Aktuelles Thema nicht mehr gueltig? zuruecksetzen.
+        if (state.focus && !validSet.has(state.focus)) {
           state.focus = '';
+          document.querySelectorAll('#screen-theme .select-card').forEach(c => c.classList.remove('selected'));
           const btn = document.getElementById('btn-theme-next');
           if (btn) btn.disabled = true;
         }
+        // Genau ein sinnvolles Thema? automatisch waehlen, damit der Schritt nicht leer wirkt.
+        if (valid.length === 1) {
+          applyTheme(valid[0]);
+          document.querySelectorAll('#screen-theme .select-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.value === valid[0]);
+          });
+          const btn = document.getElementById('btn-theme-next');
+          if (btn) btn.disabled = false;
+        }
       }
       if (id === 'constellation') {
-        const t = THEMEN[state.focus];
-        const hd = state.system === 'humandesign';
-        // Erlaubte Konstellationen aus dem Thema; bei HD zusaetzlich nur solo/pair.
-        let allowed = t ? t.konstellationen.slice() : ['solo', 'pair', 'family', 'solo_children'];
-        if (hd) allowed = allowed.filter(v => v === 'solo' || v === 'pair');
+        // Fuer-wen ist jetzt Schritt 2: alle fuer das gewaehlte System moeglichen
+        // Konstellationen anzeigen. Numerologie: alle vier. Human Design: nur solo/pair.
+        const allowed = konstFor(state.system);
         document.querySelectorAll('#screen-constellation .select-card').forEach(card => {
           card.style.display = allowed.includes(card.dataset.value) ? '' : 'none';
         });
@@ -518,8 +546,8 @@ export default function Home() {
       const idx = flow.indexOf(cur);
       const prog = document.getElementById('nav-progress');
       if (!prog) return; // Defensive: falls Element noch nicht da, später nochmal
-      const steps = flow.filter(s => !['splash', 'loading', 'result'].includes(s));
-      if (['splash', 'loading', 'result'].includes(cur)) {
+      const steps = flow.filter(s => !['splash', 'loading', 'result', 'queued'].includes(s));
+      if (['splash', 'loading', 'result', 'queued'].includes(cur)) {
         prog.innerHTML = '';
       } else {
         prog.innerHTML = steps.map((s) => {
@@ -567,16 +595,24 @@ export default function Home() {
         if (btn) btn.disabled = false;
       } else if (type === 'constellation') {
         state.constellation = el.dataset.value;
+        // Das Was haengt von der Konstellation ab -> Thema zuruecksetzen.
+        state.focus = '';
         const btn = document.getElementById('btn-constellation-next');
         if (btn) btn.disabled = false;
+        const tbtn = document.getElementById('btn-theme-next');
+        if (tbtn) tbtn.disabled = true;
       } else if (type === 'system') {
         // Themen-Flow: nach der System-Wahl entfaellt der Art-Schritt.
         // Numerologie => vollstaendige Analyse (full), Human Design => humandesign.
         state.system = el.dataset.value;
         state.art = 'standard';
         state.mode = state.system === 'humandesign' ? 'humandesign' : 'full';
+        // System bestimmt, welche Konstellationen und Themen gueltig sind -> beides zuruecksetzen.
+        state.constellation = '';
+        state.focus = '';
         const btn = document.getElementById('btn-mode-next');
         if (btn) btn.disabled = false;
+        ['btn-constellation-next', 'btn-theme-next'].forEach(bid => { const b = document.getElementById(bid); if (b) b.disabled = true; });
       } else if (type === 'art') {
         state.art = el.dataset.value;
         const rep = getReport(state.system, state.art);
@@ -2315,9 +2351,113 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     }
 
     // ── API CALL ───────────────────────────────────────────────────
+    // ── HINTERGRUND-AUFTRAEGE ──────────────────────────────────────
+    // Reports laufen serverseitig weiter, auch wenn niemand zuschaut.
+    // Die Liste liegt im localStorage, damit ein Reload nichts verliert.
+    const JOBS_KEY = 'fc_jobs_v1';
+    let jobTimer = null;
+
+    function loadJobs() {
+      try { return JSON.parse(localStorage.getItem(JOBS_KEY) || '[]'); }
+      catch (e) { return []; }
+    }
+    function saveJobs(list) {
+      try { localStorage.setItem(JOBS_KEY, JSON.stringify(list.slice(0, 25))); } catch (e) {}
+    }
+    function addJob(job) {
+      const list = loadJobs();
+      list.unshift(job);
+      saveJobs(list);
+      renderJobs();
+      startJobPolling();
+    }
+    function dismissJob(id) {
+      saveJobs(loadJobs().filter(j => j.id !== id));
+      renderJobs();
+    }
+    function jobIsActive(j) {
+      return j.status !== 'done' && j.status !== 'error';
+    }
+
+    function renderJobs() {
+      const panel = document.getElementById('jobs-panel');
+      if (!panel) return;
+      const list = loadJobs();
+      if (!list.length) { panel.innerHTML = ''; panel.style.display = 'none'; return; }
+      panel.style.display = '';
+      const active = list.filter(jobIsActive).length;
+      const rows = list.map(j => {
+        const dot = j.status === 'done' ? 'done' : (j.status === 'error' ? 'err' : 'run');
+        const sub = j.status === 'error'
+          ? (j.error || 'Fehlgeschlagen')
+          : (j.label || '') + (j.status === 'running' && j.chars ? ` · ${Math.round(j.chars / 1000)}k Zeichen` : '');
+        const actions = [];
+        if (j.status === 'done') actions.push(`<button class="job-btn" data-job-open="${j.id}">Öffnen</button>`);
+        if (j.status === 'done' && j.driveLink) actions.push(`<a class="job-btn" href="${j.driveLink}" target="_blank" rel="noopener">Drive</a>`);
+        if (!jobIsActive(j)) actions.push(`<button class="job-btn job-btn-x" data-job-dismiss="${j.id}">✕</button>`);
+        return `<div class="job-row">
+          <span class="job-dot job-dot-${dot}"></span>
+          <div class="job-main">
+            <div class="job-title">${esc(j.title || 'Analyse')} · ${esc(j.name || '')}</div>
+            <div class="job-sub">${esc(sub)}</div>
+          </div>
+          <div class="job-actions">${actions.join('')}</div>
+        </div>`;
+      }).join('');
+      panel.innerHTML = `<div class="jobs-head">Aufträge${active ? ` · ${active} laufen` : ''}</div>${rows}`;
+    }
+
+    async function pollJobs() {
+      const list = loadJobs();
+      const activeIds = list.filter(jobIsActive).map(j => j.id);
+      if (!activeIds.length) { stopJobPolling(); return; }
+      try {
+        const r = await fetch('/api/report-status?ids=' + encodeURIComponent(activeIds.join(',')));
+        if (!r.ok) return;
+        const { jobs } = await r.json();
+        if (!Array.isArray(jobs)) return;
+        const byId = {};
+        jobs.forEach(j => { byId[j.id] = j; });
+        const merged = loadJobs().map(j => byId[j.id] ? { ...j, ...byId[j.id] } : j);
+        saveJobs(merged);
+        renderJobs();
+        if (!merged.some(jobIsActive)) stopJobPolling();
+      } catch (e) { /* naechster Durchlauf */ }
+    }
+    function startJobPolling() {
+      if (jobTimer) return;
+      jobTimer = setInterval(pollJobs, 5000);
+      pollJobs();
+    }
+    function stopJobPolling() {
+      if (jobTimer) { clearInterval(jobTimer); jobTimer = null; }
+    }
+
+    // Fertigen Report aus dem Hintergrund oeffnen und anzeigen.
+    async function openJob(id) {
+      try {
+        const r = await fetch(`/api/report-status?id=${encodeURIComponent(id)}&full=1`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const job = await r.json();
+        if (!job.text) throw new Error('Der Text ist nicht mehr verfügbar.');
+        const nameEl = document.getElementById('result-name');
+        if (nameEl) nameEl.textContent = job.name || 'Analyse';
+        const titleEl = document.getElementById('result-hero-title');
+        if (titleEl) titleEl.textContent = job.title || 'Deine Seelenlandschaft';
+        // Datei liegt bereits im Drive -> manueller Download nicht nochmal hochladen.
+        state.fromJob = true;
+        state.jobTitle = job.title || '';
+        renderResult(job.text);
+        showScreen('result');
+      } catch (err) {
+        alert('Report konnte nicht geöffnet werden: ' + err.message);
+      }
+    }
+
     async function startAnalysis() {
       console.log('[FC] startAnalysis() called');
       try {
+        state.fromJob = false;
         showScreen('loading');
         startLoader();
       const p1 = getPerson('p1'), p2 = getPerson('p2');
@@ -2389,6 +2529,49 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         }
       }
 
+      // ── HINTERGRUND-AUFTRAG: abgeben und sofort weiterarbeiten ──
+      const promptText = buildPrompt(astroData, hdData);
+      const modeToTyp = { full: 'vollständige-analyse', individual: 'individuelle-analyse', humandesign: 'human-design', humandesign_individual: 'human-design', kurzprofil: 'kurzprofil' };
+      const jobMeta = {
+        name,
+        title: reportTitle,
+        subtitle: reportDescriptor(true),
+        vorname: val('p1-firstname'),
+        nachname: val('p1-lastname'),
+        geburtsdatum: val('p1-birthdate'),
+        analyseTyp: modeToTyp[state.mode] || 'analyse',
+        auftragstyp: (THEMEN[state.focus] && THEMEN[state.focus].dateiPrefix) || undefined,
+      };
+      try {
+        const r = await fetch('/api/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: promptText }],
+            language: state.language,
+            depth: state.depth,
+            meta: jobMeta,
+          }),
+        });
+        if (!r.ok) {
+          const e = await r.json().catch(() => ({}));
+          throw new Error(e.error || `HTTP ${r.status}`);
+        }
+        const { jobId } = await r.json();
+        if (!jobId) throw new Error('Keine Auftragsnummer erhalten.');
+        addJob({
+          id: jobId, name, title: reportTitle,
+          status: 'running', label: 'Analyse wird geschrieben',
+          createdAt: Date.now(),
+        });
+        stopLoader();
+        showScreen('queued');
+        return;
+      } catch (bgErr) {
+        console.warn('[FC] Hintergrund-Auftrag nicht möglich, laufe im Vordergrund:', bgErr.message);
+      }
+
+      // Fallback (z. B. lokal ohne Job-Speicher): wie bisher live mitlesen.
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -2854,7 +3037,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const res = await fetch('/api/generate-docx', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rawText, name, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, language: state.language, title: ((THEMEN[state.focus] && THEMEN[state.focus].titel) || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : ({ full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' })[state.mode])) || undefined, subtitle: reportDescriptor(true) }),
+          body: JSON.stringify({ rawText, name, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, skipDrive: !!state.fromJob, language: state.language, title: ((state.fromJob && state.jobTitle) || (THEMEN[state.focus] && THEMEN[state.focus].titel) || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : ({ full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' })[state.mode])) || undefined, subtitle: reportDescriptor(true) }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -2881,7 +3064,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     // ── RESET ──────────────────────────────────────────────────────
     function resetAll() {
       state.constellation = ''; state.focus = ''; state.childCount = 1;
-      state.ritual = false;
+      state.ritual = false; state.fromJob = false; state.jobTitle = '';
       state.relationshipType = 'partnerschaft'; state.themes = [];
       state.mode = 'full'; state.system = ''; state.art = ''; state.auftragPreset = ''; state.auftragAstro = true;
       state.lead = { name: '', email: '' };
@@ -3073,6 +3256,11 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         if (box) box.classList.toggle('on');
         if (f) f.classList.toggle('open');
       }
+      // Hintergrund-Auftraege: oeffnen / aus der Liste nehmen
+      const jobOpenBtn = e.target.closest('[data-job-open]');
+      if (jobOpenBtn) { openJob(jobOpenBtn.dataset.jobOpen); return; }
+      const jobDismissBtn = e.target.closest('[data-job-dismiss]');
+      if (jobDismissBtn) { dismissJob(jobDismissBtn.dataset.jobDismiss); return; }
       // Nav actions — use closest() so clicks on child elements (spans, icons) still register
       const btn = e.target.closest('button, [role="button"]');
       if (btn) {
@@ -3093,8 +3281,13 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         if (id === 'btn-print') window.print();
         if (id === 'btn-docx') downloadDocx();
         if (id === 'btn-reset-result') resetAll();
+        if (id === 'btn-queued-new') resetAll();
       }
     });
+
+    // Hintergrund-Auftraege wieder aufnehmen (ueberlebt Reload / Tab-Wechsel)
+    renderJobs();
+    if (loadJobs().some(jobIsActive)) startJobPolling();
 
   }, []);
 
@@ -3512,6 +3705,34 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
           .depth-meta { margin-top: 32px; padding: 16px 20px; background: rgba(255,255,255,0.5); border-radius: 8px; font-style: italic; color: var(--ink); font-size: 14px; line-height: 1.5; text-align: center; }
 
           .loading-dots { display: flex; gap: 8px; justify-content: center; margin-top: 44px; }
+
+          /* Hintergrund-Auftrag: Bestaetigungs-Screen */
+          #screen-queued { display: none; align-items: center; justify-content: center; min-height: calc(100vh - 68px); background: var(--cream); }
+          #screen-queued.active { display: flex; }
+          .queued-symbol { font-size: 56px; color: var(--gold); display: block; margin-bottom: 36px; }
+          .queued-actions { margin: 30px 0 26px; }
+
+          /* Auftrags-Panel unten rechts */
+          #jobs-panel { position: fixed; right: 18px; bottom: 18px; width: 320px; max-height: 46vh; overflow-y: auto; z-index: 900;
+            background: #fff; border: 1px solid var(--rose-pale); border-radius: 14px; box-shadow: 0 10px 34px rgba(60,30,40,0.16); padding: 12px 14px; }
+          .jobs-head { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--rose); margin-bottom: 10px; }
+          .job-row { display: flex; align-items: flex-start; gap: 9px; padding: 9px 0; border-top: 1px solid rgba(0,0,0,0.06); }
+          .job-row:first-of-type { border-top: none; }
+          .job-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: 0 0 8px; }
+          .job-dot-run { background: var(--gold); animation: jobpulse 1.4s ease-in-out infinite; }
+          .job-dot-done { background: #4B8B5A; }
+          .job-dot-err { background: #B4462F; }
+          @keyframes jobpulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+          .job-main { flex: 1; min-width: 0; }
+          .job-title { font-size: 13px; color: var(--ink); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .job-sub { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+          .job-actions { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; }
+          .job-btn { font-size: 11px; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--rose-pale);
+            background: #fff; color: var(--rose); cursor: pointer; text-decoration: none; line-height: 1.5; }
+          .job-btn:hover { background: var(--rose-pale); }
+          .job-btn-x { border-color: transparent; color: var(--muted); padding: 4px 6px; }
+          @media (max-width: 600px) { #jobs-panel { left: 12px; right: 12px; width: auto; max-height: 40vh; } }
+          @media print { #jobs-panel { display: none !important; } }
           .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rose-pale); animation: dp 1.6s ease-in-out infinite; }
           .dot:nth-child(2){animation-delay:0.3s} .dot:nth-child(3){animation-delay:0.6s}
           @keyframes dp { 0%,100%{background:var(--rose-pale);transform:scale(1)} 50%{background:var(--rose-light);transform:scale(1.4)} }
@@ -3893,7 +4114,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       <div className="screen" id="screen-constellation">
         <div className="form-page">
           <div className="form-page-header">
-            <div className="form-eyebrow">Für wen</div>
+            <div className="form-eyebrow">Schritt 2 · Für wen</div>
             <h2 className="form-h2">Für wen erstellst du<br/>diese Analyse?</h2>
             <p className="form-sub">Wähle die Konstellation der Klient:in. Sie bestimmt Tiefe und Sektionen der Analyse.</p>
           </div>
@@ -4208,9 +4429,9 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       <div className="screen" id="screen-theme">
         <div className="form-page">
           <div className="form-page-header">
-            <div className="form-eyebrow">Schritt 2 · Thema</div>
+            <div className="form-eyebrow">Schritt 3 · Thema</div>
             <h2 className="form-h2">Worum geht es<br/>in dieser Analyse?</h2>
-            <p className="form-sub">Wähle das Thema. Es bestimmt, für wen die Analyse ist und in welche Richtung der Bericht geht.</p>
+            <p className="form-sub">Wähle das Thema. Angezeigt werden nur Themen, die zur gewählten Konstellation passen. Es bestimmt die Richtung des Berichts.</p>
           </div>
           <div className="card-grid-2-3">
             {[
@@ -4318,6 +4539,19 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         </div>
       </div>
 
+      {/* SCREEN 7b: AUFTRAG ABGEGEBEN (laeuft im Hintergrund) */}
+      <div className="screen" id="screen-queued">
+        <div className="loading-inner">
+          <span className="queued-symbol">✦</span>
+          <div className="loading-h">Auftrag läuft<br/>im Hintergrund</div>
+          <div className="loading-sub">Der Report wird fertig geschrieben und automatisch als Word im Google Drive abgelegt. Du kannst das Fenster schliessen.</div>
+          <div className="queued-actions">
+            <button className="btn-primary" id="btn-queued-new">Nächsten Report starten</button>
+          </div>
+          <div className="loading-hint">Der Stand steht unten rechts unter «Aufträge». Sobald er fertig ist, kannst du ihn dort öffnen.</div>
+        </div>
+      </div>
+
       {/* SCREEN 8: RESULT */}
       <div className="screen" id="screen-result">
         <div className="result-hero">
@@ -4333,6 +4567,9 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
           <button className="btn-ghost" id="btn-reset-result">Neue Analyse starten</button>
         </div>
       </div>
+
+      {/* HINTERGRUND-AUFTRAEGE: immer sichtbar, unabhaengig vom Screen */}
+      <div id="jobs-panel" style={{ display: 'none' }}></div>
     </>
   )
 }
