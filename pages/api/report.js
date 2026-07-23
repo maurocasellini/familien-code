@@ -7,7 +7,7 @@
 
 import { generateReportText } from '../../lib/anthropic-report';
 import { buildDocxBuffer } from '../../lib/docx-builder';
-import { newJobId, setJob, setJobText, getRedis } from '../../lib/jobs';
+import { newJobId, setJob, setJobText, isStoreConfigured } from '../../lib/jobs';
 
 export const config = { maxDuration: 800 }; // Vercel Pro + Fluid Compute
 
@@ -24,8 +24,8 @@ function getWaitUntil() {
 async function runJob(id, { messages, language, depth, meta }) {
   const started = Date.now();
   try {
-    // 1) Text erzeugen. Fortschritt nur gedrosselt schreiben (max. alle 4s),
-    //    sonst wird Redis bei jedem Token angefasst.
+    // 1) Text erzeugen. Fortschritt nur gedrosselt schreiben (max. alle 20s),
+    //    denn jeder Schreibvorgang ist ein Drive-Aufruf.
     let chars = 0;
     let lastWrite = 0;
     const { text } = await generateReportText({
@@ -35,7 +35,7 @@ async function runJob(id, { messages, language, depth, meta }) {
       onDelta: (t) => {
         chars += t.length;
         const now = Date.now();
-        if (now - lastWrite > 4000) {
+        if (now - lastWrite > 20000) {
           lastWrite = now;
           setJob(id, { status: 'running', label: 'Analyse wird geschrieben', chars }).catch(() => {});
         }
@@ -97,8 +97,8 @@ export default async function handler(req, res) {
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'Invalid request body' });
   }
-  if (!getRedis()) {
-    return res.status(500).json({ error: 'Job-Speicher nicht konfiguriert (KV_REST_API_URL / KV_REST_API_TOKEN fehlen).' });
+  if (!isStoreConfigured()) {
+    return res.status(500).json({ error: 'Auftragsspeicher nicht konfiguriert (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN fehlen).' });
   }
 
   const id = newJobId();
