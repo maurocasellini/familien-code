@@ -775,23 +775,168 @@ export default function Home() {
       nvRenumber(prefix);
       nvUpdateAddBtn(prefix);
     }
-    function nameChangeBlock(prefix, label) {
+    // ── NAMENSGEWICHTUNG ───────────────────────────────────────────
+    // Massgebend ist der AKTUELL gelebte Name. Der Geburtsname beschreibt
+    // Herkunft und Praegung. Ohne Namensaenderung traegt er alles allein.
+    function nameVersionsOf(prefix) {
       const c = document.getElementById(`${prefix}-nv-container`);
-      if (!c) return '';
-      const blocks = [...c.querySelectorAll('.nv-block')];
-      let out = '';
-      let n = 0;
-      blocks.forEach((bl) => {
+      if (!c) return [];
+      return [...c.querySelectorAll('.nv-block')].map(bl => {
         const id = bl.id.replace('-block', '');
-        const firstName = val(`${id}-first`);
-        const middleName = val(`${id}-middle`);
-        const lastName = val(`${id}-last`);
-        if (!firstName && !middleName && !lastName) return;
-        n++;
-        const occLabel = NAME_OCCASIONS[val(`${id}-occasion`)] || '';
-        const full = `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
-        const nn = nameNums(full);
-        out += `\n${label} — NAMENSVERSION ${n}: ${full}${occLabel ? `\n- Anlass: ${occLabel}` : ''}\n- Ausdruckszahl: ${nn.expression}\n- Persönlichkeitszahl: ${nn.personality}\n- Seelendrang-Zahl: ${nn.soul}`;
+        const first = val(`${id}-first`);
+        const middle = val(`${id}-middle`);
+        const last = val(`${id}-last`);
+        if (!first && !middle && !last) return null;
+        const occasion = val(`${id}-occasion`);
+        return {
+          first, middle, last, occasion,
+          occLabel: NAME_OCCASIONS[occasion] || '',
+          full: `${first} ${middle} ${last}`.replace(/\s+/g, ' ').trim(),
+        };
+      }).filter(Boolean);
+    }
+
+    // Erzeugt den gewichteten Namensblock fuer eine Person.
+    function nameFocusText(person, prefix, label) {
+      if (!person || !person.firstName) return '';
+      const fmt = (nn) => `Seelendrang=${nn.soul}, Persönlichkeit=${nn.personality}, Ausdruck=${nn.expression}`;
+      const birthFull = `${person.firstName} ${person.lastName}`.replace(/\s+/g, ' ').trim();
+      const versions = nameVersionsOf(prefix);
+      const last = versions.length ? versions[versions.length - 1] : null;
+      const backToBirth = !!last && last.occasion === 'rueckkehr_geburtsname';
+      const changed = !!last && !backToBirth;
+
+      const nBirthFull = nameNums(birthFull);
+      const nBirthVor = nameNums(person.firstName);
+      const nBirthNach = person.lastName ? nameNums(person.lastName) : null;
+      const nRuf = person.rufname ? nameNums(person.rufname) : null;
+
+      let out = `NAMEN-NUMEROLOGIE ${label}:`;
+
+      if (!changed) {
+        out += `\n\nAKTUELLER NAME = GEBURTSNAME — VOLLER FOKUS: «${birthFull}»`;
+        out += `\n- Vollständiger Name: ${fmt(nBirthFull)}`;
+        out += `\n- Vorname (${person.firstName}): ${fmt(nBirthVor)}`;
+        if (nBirthNach) out += `\n- Nachname (${person.lastName}): ${fmt(nBirthNach)}`;
+        out += backToBirth
+          ? `\n→ Diese Person ist bewusst zum Geburtsnamen zurückgekehrt (${last.occLabel}). Das ist selbst eine Aussage: die ursprüngliche Schwingung wurde aktiv zurückgeholt. Dieser Name gilt heute voll.`
+          : `\n→ Es gab keine Namensänderung. Dieser eine Name trägt die volle Aussagekraft.`;
+      } else {
+        const curFull = last.full;
+        const curVor = `${last.first} ${last.middle}`.replace(/\s+/g, ' ').trim();
+        out += `\n\nAKTUELLER NAME — HAUPTFOKUS: «${curFull}»${last.occLabel ? ` (${last.occLabel})` : ''}`;
+        out += `\n- Vollständiger Name: ${fmt(nameNums(curFull))}`;
+        if (curVor) out += `\n- Vorname (${curVor}): ${fmt(nameNums(curVor))}`;
+        if (last.last) out += `\n- Nachname (${last.last}): ${fmt(nameNums(last.last))}`;
+        out += `\n→ In dieser Schwingung lebt die Person HEUTE. Alle Kernaussagen zu Persönlichkeit, Ausdruck, Seelendrang, Alltag, Beziehung und Beruf stützen sich PRIMÄR auf diesen Namen.`;
+
+        out += `\n\nGEBURTSNAME — HINTERGRUND, deutlich geringeres Gewicht: «${birthFull}»`;
+        out += `\n- Vollständiger Name: ${fmt(nBirthFull)}`;
+        if (nBirthNach) out += `\n- Nachname (${person.lastName}): ${fmt(nBirthNach)}`;
+        out += `\n→ Zeigt Herkunft, familiäre Prägung und das mitgebrachte Grundmuster. Nutze ihn NUR für Wurzeln, Herkunftsthemen und die Namensänderung selbst, NICHT als Beschreibung der heutigen Persönlichkeit.`;
+
+      }
+
+      // Frueher getragene Namen: Entwicklungsweg, geringes Gewicht.
+      // Auch bei Rueckkehr zum Geburtsnamen relevant (der Ehename war eine Lebensstation).
+      const prior = versions.slice(0, -1);
+      if (prior.length) {
+        const mids = prior.map((v, i) => `\n- Station ${i + 1}: «${v.full}»${v.occLabel ? ` (${v.occLabel})` : ''} — ${fmt(nameNums(v.full))}`).join('');
+        out += `\n\nFRÜHER GETRAGENE NAMEN — Entwicklungsweg, geringes Gewicht:${mids}`;
+      }
+
+      if (nRuf) out += `\n\nRUFNAME (Alltagsklang, ergänzend): «${person.rufname}» — ${fmt(nRuf)}`;
+      return out;
+    }
+
+    // ── ZAHLENUEBERSICHT ───────────────────────────────────────────
+    // Wird IM CODE erzeugt, nicht vom Modell geschrieben. Nur so sind die Zahlen
+    // zum Nachkontrollieren verlaesslich. Landet als eigene Sektion direkt nach
+    // den Grunddaten und erscheint dadurch im Word wie auf dem Bildschirm.
+    function personZahlen(p, prefix) {
+      if (!p || !p.firstName) return '';
+      const versions = nameVersionsOf(prefix);
+      const last = versions.length ? versions[versions.length - 1] : null;
+      const backToBirth = !!last && last.occasion === 'rueckkehr_geburtsname';
+      const birthFull = `${p.firstName} ${p.lastName}`.replace(/\s+/g, ' ').trim();
+      const currentFull = (last && !backToBirth) ? last.full : birthFull;
+      const nCur = nameNums(currentFull);
+      const pj = getPersonalYearInfo(p.birthDate);
+      const bd = birthDayNum(p.birthDate);
+      const zod = zodiac(p.birthDate);
+
+      let out = `**${currentFull}** · geb. ${p.birthDate || 'unbekannt'}${zod ? ` · ${zod}` : ''}`;
+      out += `\n- Lebenszahl: ${lifeNum(p.birthDate)}`;
+      out += `\n- Ausdruckszahl: ${nCur.expression}`;
+      out += `\n- Persönlichkeitszahl: ${nCur.personality}`;
+      out += `\n- Seelendrang: ${nCur.soul}`;
+      if (bd) out += `\n- Geburtstagszahl: ${bd}`;
+      if (pj) out += `\n- Persönliches Jahr: ${pj.currentPJ} (aktiv ${pj.startDate} bis ${pj.endDate})`;
+      if (currentFull !== birthFull) {
+        const nB = nameNums(birthFull);
+        out += `\n- Geburtsname «${birthFull}»: Ausdruck ${nB.expression}, Persönlichkeit ${nB.personality}, Seelendrang ${nB.soul}`;
+      }
+      if (p.rufname) {
+        const nR = nameNums(p.rufname);
+        out += `\n- Rufname «${p.rufname}»: Ausdruck ${nR.expression}, Persönlichkeit ${nR.personality}, Seelendrang ${nR.soul}`;
+      }
+      return out;
+    }
+
+    function zahlenUebersichtSection(p1, p2, hasPair, hasKids) {
+      const parts = [];
+      const a = personZahlen(p1, 'p1');
+      if (a) parts.push(a);
+      if (hasPair && p2) { const b = personZahlen(p2, 'p2'); if (b) parts.push(b); }
+      if (hasKids) {
+        for (let i = 0; i < state.childCount; i++) {
+          if (!document.getElementById(`child-block-${i}`)) continue;
+          const c = personZahlen(getPerson(`child${i}`), `child${i}`);
+          if (c) parts.push(c);
+        }
+      }
+      if (!parts.length) return '';
+      if (hasPair && p2 && p1.birthDate && p2.birthDate) {
+        parts.push(`**Gemeinsam**\n- Kompatibilitätszahl (Beziehungscode): ${compatNum(lifeNum(p1.birthDate), lifeNum(p2.birthDate))}`);
+      }
+      return `Zahlenübersicht\nAlle berechneten Kernzahlen auf einen Blick, zum Nachschlagen und Kontrollieren.\n\n${parts.join('\n\n')}`;
+    }
+
+    // Uebersicht als zweite Sektion einsetzen, also direkt nach «Grunddaten».
+    function insertUebersicht(text, section) {
+      if (!section) return text;
+      const parts = String(text).split('~~~');
+      if (parts.length < 2) return `${text}\n\n~~~\n\n${section}\n`;
+      parts.splice(1, 0, `\n\n${section}\n\n`);
+      return parts.join('~~~');
+    }
+
+    // Kinder-Namensbloecke: Index folgt den tatsaechlich vorhandenen Bloecken.
+    function kidNameFocusBlocks() {
+      let k = 0, out = '';
+      for (let i = 0; i < state.childCount; i++) {
+        if (!document.getElementById(`child-block-${i}`)) continue;
+        k++;
+        const c = getPerson(`child${i}`);
+        const t = nameFocusText(c, `child${i}`, `KIND ${k}`);
+        if (t) out += (out ? '\n' : '') + t;
+      }
+      return out;
+    }
+
+    const NAME_GEWICHTUNG_INSTR = `
+GEWICHTUNG DER NAMEN (WICHTIG, GILT FÜR DIE GANZE ANALYSE):
+Massgebend ist der AKTUELL gelebte Name. Wo eine Person ihren Namen geändert hat (Heirat, Doppelname, behördliche Änderung), beschreibt der aktuelle Name die heutige Persönlichkeit, den heutigen Ausdruck und den heutigen Seelendrang. Der Geburtsname tritt dahinter zurück und beschreibt Herkunft, familiäre Prägung und das mitgebrachte Grundmuster.
+Formuliere Kernaussagen deshalb aus dem AKTUELLEN Namen. Ziehe den Geburtsnamen nur dort heran, wo es um Wurzeln, Familienmuster oder die Namensänderung selbst geht. Wenn es KEINE Namensänderung gibt, trägt der Geburtsname die volle Aussagekraft.`;
+
+    function nameChangeBlock(prefix, label) {
+      const versions = nameVersionsOf(prefix);
+      if (!versions.length) return '';
+      let out = '';
+      versions.forEach((v, i) => {
+        const nn = nameNums(v.full);
+        const isCurrent = i === versions.length - 1;
+        out += `\n${label} — NAMENSVERSION ${i + 1}${isCurrent ? ' (AKTUELL GELEBTER NAME — massgebend)' : ''}: ${v.full}${v.occLabel ? `\n- Anlass: ${v.occLabel}` : ''}\n- Ausdruckszahl: ${nn.expression}\n- Persönlichkeitszahl: ${nn.personality}\n- Seelendrang-Zahl: ${nn.soul}`;
       });
       return out;
     }
@@ -2058,8 +2203,8 @@ MODUS: KURZPROFIL — ein kompaktes Werkzeug FUER DICH (die beratende Person), n
 PERSON:
 ${personBlock(p1, 'PERSON 1')}
 
-VORBERECHNETE NAMEN-NUMEROLOGIE (exakt so verwenden):
-${nameNumsText(nn1, 'PERSON 1')}
+VORBERECHNETE NAMEN-NUMEROLOGIE (exakt so verwenden):${NAME_GEWICHTUNG_INSTR}
+${nameFocusText(p1, 'p1', 'PERSON 1')}
 ${pj1Block}
 ${ext1Block}
 ${astro1Block}
@@ -2100,8 +2245,8 @@ MODUS: Individuelle Analyse (freier Auftrag). Du erstellst KEINE feste Sektionss
 PERSON:
 ${personBlock(p1, 'PERSON 1')}
 
-VORBERECHNETE NAMEN-NUMEROLOGIE (exakt so verwenden):
-${nameNumsText(nn1, 'PERSON 1')}
+VORBERECHNETE NAMEN-NUMEROLOGIE (exakt so verwenden):${NAME_GEWICHTUNG_INSTR}
+${nameFocusText(p1, 'p1', 'PERSON 1')}
 ${pj1Block}
 ${ext1Block}${includeAstro ? `\n${astro1Block}` : ''}
 
@@ -2133,10 +2278,10 @@ ${coupleBlock}
 ${kids}
 ${nc1}${nc2}${ncKids}
 
-VORBERECHNETE NAMEN-NUMEROLOGIE (diese Zahlen sind korrekt — verwende sie exakt so):
-${nameNumsText(nn1, 'PERSON 1')}
-${nn2 ? nameNumsText(nn2, 'PERSON 2') : ''}
-${nnKids.map((nn, i) => nameNumsText(nn, `KIND ${i+1}`)).join('\n')}
+VORBERECHNETE NAMEN-NUMEROLOGIE (diese Zahlen sind korrekt — verwende sie exakt so):${NAME_GEWICHTUNG_INSTR}
+${nameFocusText(p1, 'p1', 'PERSON 1')}
+${p2 ? nameFocusText(p2, 'p2', 'PERSON 2') : ''}
+${hasKids ? kidNameFocusBlocks() : ''}
 ${ancestryBlock}
 ${pj1Block}
 ${pj2Block}
@@ -2258,7 +2403,7 @@ MODUL Lebenszyklen & Wendepunkte (Layer L)${hasPair ? ' — separat für jede Pe
 MODUL Entscheidungsradar (Layer O) — DIESE SEKTION STEHT IMMER GANZ AM ENDE, direkt vor der Essenz, mindestens 800 Wörter. Synthese ALLER vorherigen Sektionen zu einem praktischen Entscheidungsradar: was die Zahlen und Zyklen aktuell BEGÜNSTIGEN und wovor sie zu VORSICHT raten. Verwende [KARTEN-GRID-START/END] mit klaren Begünstigt- und Vorsicht-Karten. Diese Sektion fasst zusammen, sie wiederholt nicht.
 
 ${hasAncestry ? `18. Die Ahnenlinie, mindestens 1500 Wörter. Analysiere mit den ANGEGEBENEN Daten zu Mutter und/oder Vater: wiederholende Lebenszahlen, Mutterlinie vs. Vaterlinie, kulturelle Herkunftslinie, was die Hauptperson aus dem System weitertraegt. KEINE Aussagen über nicht angegebene Vorfahren. Schreibe als Fliesstext.
-` : ''}${hasNameChange ? `19. Namenswechsel & seine Energie, mindestens 1000 Wörter. Analysiere den/die Namenswechsel: was veraendert sich numerologisch? Welche Energie kommt, welche geht? [NAMEN-GRID-START/END] für den Vergleich.
+` : ''}${hasNameChange ? `19. Namenswechsel & seine Energie, mindestens 1000 Wörter. Analysiere den/die Namenswechsel: was veraendert sich numerologisch? Welche Energie kommt, welche geht? Der zuletzt genannte Name ist der heute gelebte und damit der massgebende; der Geburtsname beschreibt das Herkunftsmuster, aus dem die Person herausgewachsen ist. [NAMEN-GRID-START/END] für den Vergleich.
 20. Die Essenz, ein einziger Satz, mit [ESSENZ:Text]` : `19. Die Essenz, ein einziger Satz, mit [ESSENZ:Text]`}
 
 ${state.ritual ? `\nZUSAETZLICHE SEKTION (PFLICHT) — platziere sie als VORLETZTE Sektion, direkt vor der Essenz, mit ~~~ abgetrennt wie alle anderen Sektionen. Titelzeile: Ritual & Affirmationen\nInhalt${hasPair ? ` — schreibe getrennte, gleichwertige Bloecke fuer ${p1.firstName || 'Person 1'} und ${p2?.firstName || 'Person 2'}` : ''}:\n(a) Kurze Hinfuehrung (ca. 120 Woerter): wie aus den persoenlichen Zahlen (Lebenszahl, Seelendrang, Persoenlichkeit, Ausdruck, aktuelles Persoenliches Jahr) Affirmationen und ein Ritual entstehen.\n(b) Genau 7 persoenliche Affirmationen, abgeleitet aus den KONKRETEN Zahlen dieser Person. Jede in Ich-Form, ein kraftvoller Satz, jede auf einer EIGENEN Zeile, mit einer Leerzeile dazwischen, beginnend mit "✦ ". Sie staerken die Lichtseiten der Zahlen und gleichen die Schatten sanft aus.\n(c) Ein persoenliches Jahresritual (2 bis 3 Absaetze), passend zum aktuellen Persoenlichen Jahr: konkret und einfach umsetzbar (Zeitpunkt, Ablauf, Bedeutung), die Energie des Jahres unterstuetzend.\nKein Tarot, keine Kartennamen, keine Methodik offenlegen. Warmer, ermutigender Ton.\n` : ''}Schreibe tief, präzise, persönlich. Keine generischen Aussagen. Zahlen und astrologische Fakten exakt aus den gegebenen Daten ableiten.
@@ -2541,6 +2686,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         geburtsdatum: val('p1-birthdate'),
         analyseTyp: modeToTyp[state.mode] || 'analyse',
         auftragstyp: (THEMEN[state.focus] && THEMEN[state.focus].dateiPrefix) || undefined,
+        uebersicht: zahlenUebersichtSection(p1, p2, hasPair, hasKids),
       };
       try {
         const r = await fetch('/api/report', {
@@ -2627,7 +2773,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         if (streamErr) throw new Error(streamErr);
         if (!gotDone) throw new Error('Verbindung unterbrochen, bevor der Text vollständig war. Bitte erneut versuchen.');
         stopLoader();
-        renderResult(finalText);
+        renderResult(insertUebersicht(finalText, zahlenUebersichtSection(p1, p2, hasPair, hasKids)));
       } catch (err) {
         stopLoader();
         renderError(err.message);
