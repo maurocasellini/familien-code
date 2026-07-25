@@ -21,6 +21,17 @@ function getWaitUntil() {
   return null;
 }
 
+// Zahlenuebersicht als zweite Sektion einsetzen, also direkt nach «Grunddaten».
+// Der Block wird im Frontend aus den bereits berechneten Zahlen erzeugt und NICHT
+// vom Modell geschrieben — nur so taugt er zum Nachkontrollieren.
+function insertUebersicht(text, section) {
+  if (!section) return text;
+  const parts = String(text).split('~~~');
+  if (parts.length < 2) return `${text}\n\n~~~\n\n${section}\n`;
+  parts.splice(1, 0, `\n\n${section}\n\n`);
+  return parts.join('~~~');
+}
+
 async function runJob(id, { messages, language, depth, meta }) {
   const started = Date.now();
   try {
@@ -42,12 +53,13 @@ async function runJob(id, { messages, language, depth, meta }) {
       },
     });
     if (!text || !text.trim()) throw new Error('Die Analyse kam leer zurueck.');
-    await setJobText(id, text);
-    await setJob(id, { status: 'building', label: 'Word-Dokument wird gebaut', chars: text.length });
+    const finalText = insertUebersicht(text, meta.uebersicht);
+    await setJobText(id, finalText);
+    await setJob(id, { status: 'building', label: 'Word-Dokument wird gebaut', chars: finalText.length });
 
     // 2) docx bauen
     const { buffer } = await buildDocxBuffer({
-      rawText: text,
+      rawText: finalText,
       name: meta.name,
       language,
       title: meta.title,
@@ -72,7 +84,7 @@ async function runJob(id, { messages, language, depth, meta }) {
     await setJob(id, {
       status: 'done',
       label: drive ? 'Fertig, im Drive abgelegt' : 'Fertig',
-      chars: text.length,
+      chars: finalText.length,
       driveLink: drive?.webViewLink || null,
       driveName: drive?.name || null,
       seconds: Math.round((Date.now() - started) / 1000),
