@@ -985,7 +985,11 @@ Formuliere Kernaussagen deshalb aus dem AKTUELLEN Namen. Ziehe den Geburtsnamen 
             <label class="field-label">Geburtsort</label>
             <input class="field-input" id="${prefix}-birthplace" placeholder="Stadt, Land" />
           </div>
-        </div>`;
+        </div>${prefix === 'p1' ? `
+        <div class="field-group">
+          <label class="field-label">Kundennummer (wird automatisch vergeben, überschreibbar)</label>
+          <input class="field-input" id="p1-kundennummer" placeholder="wird automatisch gesetzt" />
+        </div>` : ''}`;
     }
 
     function childBlockHTML(i) {
@@ -2929,6 +2933,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         name,
         title: reportTitle,
         subtitle: reportDescriptor(true),
+        kundennummer: val('p1-kundennummer'),
         vorname: val('p1-firstname'),
         nachname: val('p1-lastname'),
         geburtsdatum: val('p1-birthdate'),
@@ -3421,6 +3426,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       const vorname = val('p1-firstname');
       const nachname = val('p1-lastname');
       const geburtsdatum = val('p1-birthdate');
+      const kundennummer = val('p1-kundennummer');
       const modeToTyp = { full: 'vollständige-analyse', individual: 'individuelle-analyse', humandesign: 'human-design', humandesign_individual: 'human-design', kurzprofil: 'kurzprofil' };
       const analyseTyp = modeToTyp[state.mode] || 'analyse';
       const auftragstyp = (state.mode === 'individual' && THEMEN[state.focus]) ? (THEMEN[state.focus].dateiPrefix || state.focus) : undefined;
@@ -3431,7 +3437,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const res = await fetch('/api/generate-docx', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rawText, name, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, skipDrive: !!state.fromJob, language: state.language, title: ((state.fromJob && state.jobTitle) || coverTitleL10N()) || undefined, subtitle: reportDescriptor(true) }),
+          body: JSON.stringify({ rawText, name, kundennummer, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, skipDrive: !!state.fromJob, language: state.language, title: ((state.fromJob && state.jobTitle) || coverTitleL10N()) || undefined, subtitle: reportDescriptor(true) }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -3463,6 +3469,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       state.mode = 'full'; state.system = ''; state.art = ''; state.auftragPreset = ''; state.auftragAstro = true;
       state.lead = { name: '', email: '' };
       document.querySelectorAll('.field-input').forEach(el => { el.value = ''; el.disabled = false; });
+      knManual = false;
       document.querySelectorAll('.toggle-box').forEach(el => el.classList.remove('on'));
       // Namensversionen auf je eine leere zuruecksetzen
       ['p1', 'p2'].forEach(pfx => { const c = document.getElementById(`${pfx}-nv-container`); if (c) { c.innerHTML = ''; state.nvSeq[pfx] = 0; addNameVersion(pfx); } });
@@ -3525,9 +3532,36 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     applyDepthModules(); // Standard-Tiefe (15) auf Module abbilden + Readout fuellen
     updateNav();
 
+    // Kundennummer automatisch vergeben (Hauptperson), manuell ueberschreibbar.
+    let knAutoTimer = null;
+    let knManual = false;
+    async function refreshKundennummer() {
+      if (knManual) return;
+      const el = document.getElementById('p1-kundennummer');
+      if (!el) return;
+      const nachname = val('p1-lastname');
+      const vorname = val('p1-firstname');
+      const geburtsdatum = val('p1-birthdate');
+      if (!nachname && !vorname) { el.value = ''; return; }
+      try {
+        const r = await fetch('/api/kundennummer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nachname, vorname, geburtsdatum }),
+        });
+        const data = await r.json();
+        if (!knManual && data && data.kundennummer) el.value = data.kundennummer;
+      } catch (_) { /* Feld bleibt leer, kein Blocker */ }
+    }
+
     // Lead gate input listeners
     document.addEventListener('input', (e) => {
       if (e.target.id === 'lead-name' || e.target.id === 'lead-email') validateLead();
+      if (e.target.id === 'p1-kundennummer') knManual = true;
+      if (e.target.id === 'p1-firstname' || e.target.id === 'p1-lastname' || e.target.id === 'p1-birthdate') {
+        clearTimeout(knAutoTimer);
+        knAutoTimer = setTimeout(refreshKundennummer, 500);
+      }
       if (e.target.id === 'auftrag-text') updateAuftragBtn();
       if (e.target.id === 'depth-slider') {
         const v = parseInt(e.target.value, 10);

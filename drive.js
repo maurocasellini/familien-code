@@ -64,19 +64,30 @@ function normDate(d) {
   return sanitize(s);
 }
 
-// Baut den Ordnernamen: Nachname_Vorname_JJJJ-MM-TT
+// Der personenbezogene Teil des Ordnernamens: Nachname_Vorname_JJJJ-MM-TT
+// Er ist der fachliche Schluessel: dieselbe Person ergibt immer dasselbe Suffix,
+// unabhaengig davon, ob schon eine Kundennummer vergeben wurde.
 // Leere Bestandteile (z. B. fehlendes Geburtsdatum) fallen sauber weg.
-function buildFolderName({ nachname, vorname, geburtsdatum }) {
+function personSuffix({ nachname, vorname, geburtsdatum }) {
   return [nachname, vorname, normDate(geburtsdatum)]
     .map(sanitize)
     .filter(Boolean)
     .join('_');
 }
 
+// Baut den Ordnernamen: Kundennummer_Nachname_Vorname_JJJJ-MM-TT
+// Ohne Kundennummer bleibt es beim bisherigen Namen (Rueckwaertskompatibel).
+function buildFolderName({ kundennummer, nachname, vorname, geburtsdatum }) {
+  const suffix = personSuffix({ nachname, vorname, geburtsdatum });
+  const nr = sanitize(kundennummer);
+  return nr ? `${nr}_${suffix}` : suffix;
+}
+
 // Baut den Dateinamen ohne Kollisionssuffix (das kommt spaeter dazu).
 // typ:        'vollständige-analyse' | 'individuelle-analyse' | 'human-design'
 // auftragstyp: optional, nur bei individueller Analyse (z. B. 'beziehung')
 function buildBaseName({
+  kundennummer,
   nachname,
   vorname,
   geburtsdatum,
@@ -84,7 +95,7 @@ function buildBaseName({
   auftragstyp,
   datum,
 }) {
-  const folder = buildFolderName({ nachname, vorname, geburtsdatum });
+  const folder = buildFolderName({ kundennummer, nachname, vorname, geburtsdatum });
   const parts = [folder, datum, sanitize(typ)].filter(Boolean);
   const at = sanitize(auftragstyp);
   if (at) parts.push(at);
@@ -181,6 +192,7 @@ async function resolveFreeName(drive, base, parentId, now) {
  */
 async function uploadAnalysis({
   buffer,
+  kundennummer,
   geburtsdatum,
   nachname,
   vorname,
@@ -196,10 +208,11 @@ async function uploadAnalysis({
   const dateStr = datum || now.toFormat('yyyy-LL-dd');
 
   const rootId = await getRootFolderId(drive);
-  const folderName = buildFolderName({ nachname, vorname, geburtsdatum });
+  const folderName = buildFolderName({ kundennummer, nachname, vorname, geburtsdatum });
   const folderId = await findOrCreateFolder(drive, folderName, rootId);
 
   const base = buildBaseName({
+    kundennummer,
     nachname,
     vorname,
     geburtsdatum,
@@ -228,5 +241,7 @@ module.exports = {
   // exportiert fuer Tests / Kontrolle:
   buildFolderName,
   buildBaseName,
+  personSuffix,
+  normDate,
   sanitize,
 };

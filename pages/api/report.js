@@ -70,9 +70,24 @@ async function runJob(id, { messages, language, depth, meta }) {
     let drive = null;
     if (meta.nachname || meta.vorname) {
       await setJob(id, { status: 'uploading', label: 'Wird im Google Drive abgelegt' });
+      // Kundennummer verbindlich ueber das Register aufloesen (Wiedererkennung).
+      let kundennummer = meta.kundennummer;
+      try {
+        const { resolveKundennummer } = require('../../lib/kundenregister');
+        const r = await resolveKundennummer({
+          nachname: meta.nachname,
+          vorname: meta.vorname,
+          geburtsdatum: meta.geburtsdatum,
+          override: meta.kundennummer,
+        });
+        kundennummer = r.kundennummer;
+      } catch (e) {
+        console.error('[report] Kundennummer nicht aufloesbar:', e.message);
+      }
       const { uploadAnalysis } = require('../../drive');
       drive = await uploadAnalysis({
         buffer,
+        kundennummer,
         geburtsdatum: meta.geburtsdatum,
         nachname: meta.nachname,
         vorname: meta.vorname,
