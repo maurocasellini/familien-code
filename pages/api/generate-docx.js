@@ -9,7 +9,7 @@ export const config = { maxDuration: 60 };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { rawText, name, language, title, subtitle, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, skipDrive } = req.body || {};
+  const { rawText, name, language, title, subtitle, kundennummer, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, skipDrive } = req.body || {};
   if (!rawText || typeof rawText !== 'string') return res.status(400).json({ error: 'Missing rawText' });
 
   try {
@@ -20,9 +20,17 @@ export default async function handler(req, res) {
     // laedt der manuelle Download sie nicht ein zweites Mal hoch.
     if (!skipDrive && (nachname || vorname)) {
       try {
+        let nr = kundennummer;
+        try {
+          const { resolveKundennummer } = require('../../lib/kundenregister');
+          const r = await resolveKundennummer({ nachname, vorname, geburtsdatum, override: kundennummer });
+          nr = r.kundennummer;
+        } catch (e) {
+          console.error('Kundennummer nicht aufloesbar:', e.message);
+        }
         const { uploadAnalysis } = require('../../drive');
         await uploadAnalysis({
-          buffer, geburtsdatum, nachname, vorname,
+          buffer, kundennummer: nr, geburtsdatum, nachname, vorname,
           typ: analyseTyp || 'analyse',
           auftragstyp: auftragstyp || undefined,
         });
