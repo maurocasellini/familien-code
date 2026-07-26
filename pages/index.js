@@ -865,20 +865,21 @@ export default function Home() {
       const bd = birthDayNum(p.birthDate);
       const zod = zodiac(p.birthDate);
 
-      let out = `**${currentFull}** · geb. ${p.birthDate || 'unbekannt'}${zod ? ` · ${zod}` : ''}`;
-      out += `\n- Lebenszahl: ${lifeNum(p.birthDate)}`;
-      out += `\n- Ausdruckszahl: ${nCur.expression}`;
-      out += `\n- Persönlichkeitszahl: ${nCur.personality}`;
-      out += `\n- Seelendrang: ${nCur.soul}`;
-      if (bd) out += `\n- Geburtstagszahl: ${bd}`;
-      if (pj) out += `\n- Persönliches Jahr: ${pj.currentPJ} (aktiv ${pj.startDate} bis ${pj.endDate})`;
+      const U = UEB_L10N[RLANG()];
+      let out = `**${currentFull}** · ${U.geb} ${p.birthDate || (RLANG() === 'en' ? 'unknown' : RLANG() === 'pt' ? 'desconhecido' : 'unbekannt')}${zod ? ` · ${zod}` : ''}`;
+      out += `\n- ${U.leben}: ${lifeNum(p.birthDate)}`;
+      out += `\n- ${U.ausdruckN}: ${nCur.expression}`;
+      out += `\n- ${U.persN}: ${nCur.personality}`;
+      out += `\n- ${U.seele}: ${nCur.soul}`;
+      if (bd) out += `\n- ${U.geburtstag}: ${bd}`;
+      if (pj) out += `\n- ${U.pj}: ${pj.currentPJ} (${U.aktiv} ${pj.startDate} ${U.bis} ${pj.endDate})`;
       if (currentFull !== birthFull) {
         const nB = nameNums(birthFull);
-        out += `\n- Geburtsname «${birthFull}»: Ausdruck ${nB.expression}, Persönlichkeit ${nB.personality}, Seelendrang ${nB.soul}`;
+        out += `\n- ${U.geburtsname} «${birthFull}»: ${U.ausdruck} ${nB.expression}, ${U.pers} ${nB.personality}, ${U.seele} ${nB.soul}`;
       }
       if (p.rufname) {
         const nR = nameNums(p.rufname);
-        out += `\n- Rufname «${p.rufname}»: Ausdruck ${nR.expression}, Persönlichkeit ${nR.personality}, Seelendrang ${nR.soul}`;
+        out += `\n- ${U.rufname} «${p.rufname}»: ${U.ausdruck} ${nR.expression}, ${U.pers} ${nR.personality}, ${U.seele} ${nR.soul}`;
       }
       return out;
     }
@@ -896,10 +897,11 @@ export default function Home() {
         }
       }
       if (!parts.length) return '';
+      const U = UEB_L10N[RLANG()];
       if (hasPair && p2 && p1.birthDate && p2.birthDate) {
-        parts.push(`**Gemeinsam**\n- Kompatibilitätszahl (Beziehungscode): ${compatNum(lifeNum(p1.birthDate), lifeNum(p2.birthDate))}`);
+        parts.push(`**${U.gemeinsam}**\n- ${U.kompat}: ${compatNum(lifeNum(p1.birthDate), lifeNum(p2.birthDate))}`);
       }
-      return `Zahlenübersicht\nAlle berechneten Kernzahlen auf einen Blick, zum Nachschlagen und Kontrollieren.\n\n${parts.join('\n\n')}`;
+      return `${U.header}\n${U.intro}\n\n${parts.join('\n\n')}`;
     }
 
     // Uebersicht als zweite Sektion einsetzen, also direkt nach «Grunddaten».
@@ -1773,6 +1775,242 @@ ${monthLines}${transitionNote}`;
     }
 
     // ── PROMPT ─────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════
+    // MEHRSPRACHIGKEIT DER REPORTS (de / en / pt)
+    // Die Web-Oberflaeche bleibt Deutsch. Diese Tabellen + Helfer sorgen dafuer,
+    // dass die generierte Analyse UND das Word-Dokument durchgaengig in der
+    // gewaehlten Sprache erscheinen. 'de' ist Default.
+    // ══════════════════════════════════════════════════════════════
+    const RLANG = () => (state.language === 'en' || state.language === 'pt') ? state.language : 'de';
+
+    // Deckblatt-Titel je Analyse-Modus
+    const REPORT_TITLES_L10N = {
+      full:                   { de: 'Deine Seelenlandschaft', en: 'Your Soul Landscape', pt: 'A Tua Paisagem da Alma' },
+      individual:             { de: 'Deine persönliche Analyse', en: 'Your Personal Analysis', pt: 'A Tua Análise Pessoal' },
+      humandesign:            { de: 'Dein BodyGraph', en: 'Your BodyGraph', pt: 'O Teu BodyGraph' },
+      humandesign_individual: { de: 'Deine persönliche Analyse', en: 'Your Personal Analysis', pt: 'A Tua Análise Pessoal' },
+      kurzprofil:             { de: 'Kurzprofil', en: 'Quick Profile', pt: 'Perfil Breve' },
+      hd_pair:                { de: 'Euer BodyGraph', en: 'Your Shared BodyGraph', pt: 'O Vosso BodyGraph' },
+    };
+
+    // Themen: Deckblatt-Titel (titel) + Thema-Label (label) in en/pt
+    const THEMEN_L10N = {
+      gesamtbild:    { titel: { en: 'Your Soul Landscape', pt: 'A Tua Paisagem da Alma' }, label: { en: 'The Big Picture', pt: 'O Grande Panorama' } },
+      beziehung:     { titel: { en: 'Your Relationship Dynamics', pt: 'A Vossa Dinâmica de Relação' }, label: { en: 'Relationship Dynamics', pt: 'Dinâmica de Relação' } },
+      lebensweg:     { titel: { en: 'Your Personal Life Path', pt: 'O Teu Caminho de Vida Pessoal' }, label: { en: 'Personal Life Path', pt: 'Caminho de Vida Pessoal' } },
+      seelenmission: { titel: { en: 'Your Soul Mission', pt: 'A Tua Missão da Alma' }, label: { en: 'The Soul Mission', pt: 'A Missão da Alma' } },
+      kinder:        { titel: { en: 'The Soul Portrait of Your Children', pt: 'O Retrato da Alma dos Teus Filhos' }, label: { en: 'The Children', pt: 'As Crianças' } },
+      jahresausblick:{ titel: { en: 'Your Year Ahead', pt: 'A Tua Previsão Anual' }, label: { en: 'Year Ahead', pt: 'Previsão Anual' } },
+      beruf:         { titel: { en: 'Career & Calling', pt: 'Profissão & Vocação' }, label: { en: 'Career & Calling', pt: 'Profissão & Vocação' } },
+      entscheidung:  { titel: { en: 'Transitions & Decisions', pt: 'Transições & Decisões' }, label: { en: 'Transitions & Decisions', pt: 'Transições & Decisões' } },
+      familie:       { titel: { en: 'Your Family Dynamics', pt: 'A Vossa Dinâmica Familiar' }, label: { en: 'Family Dynamics', pt: 'Dinâmica Familiar' } },
+      energie:       { titel: { en: 'Health & Energy', pt: 'Saúde & Energia' }, label: { en: 'Health & Energy', pt: 'Saúde & Energia' } },
+      wohlstand:     { titel: { en: 'Money & Prosperity', pt: 'Dinheiro & Prosperidade' }, label: { en: 'Money & Prosperity', pt: 'Dinheiro & Prosperidade' } },
+    };
+
+    // Beziehungstyp-Labels (BEZ_TYPEN.label) in en/pt
+    const BEZ_LABEL_L10N = {
+      partnerschaft:          { en: 'Love Partnership', pt: 'Relação Amorosa' },
+      geschaeftspartnerschaft:{ en: 'Business Partnership', pt: 'Parceria de Negócios' },
+      freundschaft:           { en: 'Friendship', pt: 'Amizade' },
+      vorgesetzte:            { en: 'Superior', pt: 'Chefia' },
+      mitarbeitende:          { en: 'Team Member', pt: 'Colaborador' },
+      kollegium:              { en: 'Colleagues / Team', pt: 'Colegas / Equipa' },
+      geschwister:            { en: 'Siblings', pt: 'Irmãos' },
+      elternkind:             { en: 'Parent and Child', pt: 'Pais e Filho' },
+    };
+
+    // Auftrags-Presets (Individuell-Modus): Label in en/pt
+    const AUFTRAG_LABEL_L10N = {
+      individual:    { en: 'Individual Request', pt: 'Pedido Individual' },
+      frage:         { en: 'Personal Question', pt: 'Questão Pessoal' },
+      jahresprognose:{ en: 'Year Forecast', pt: 'Previsão Anual' },
+      berufung:      { en: 'Calling & Career', pt: 'Vocação & Carreira' },
+      entscheidung:  { en: 'Decision Support', pt: 'Apoio à Decisão' },
+      timing:        { en: 'Favourable Timing', pt: 'Momento Favorável' },
+      namen:         { en: 'Name Analysis / Name Choice', pt: 'Análise de Nome / Escolha de Nome' },
+      beziehung:     { en: 'Relationship Question', pt: 'Questão de Relação' },
+      lebensthema:   { en: 'Life Theme / Pattern', pt: 'Tema de Vida / Padrão' },
+      bestimmung:    { en: 'Soul Task & Purpose', pt: 'Tarefa da Alma & Propósito' },
+      uebergang:     { en: 'Transition & New Beginning', pt: 'Transição & Recomeço' },
+    };
+
+    // Report-Beschreibung (Untertitel): Konstellation + Textbausteine
+    const DESC_L10N = {
+      solo:          { de: 'Einzelanalyse', en: 'Individual Analysis', pt: 'Análise Individual' },
+      pair:          { de: 'Paaranalyse', en: 'Couple Analysis', pt: 'Análise de Casal' },
+      family:        { de: 'Familienanalyse', en: 'Family Analysis', pt: 'Análise Familiar' },
+      solo_children: { de: 'Familienanalyse · Alleinerziehend', en: 'Family Analysis · Single Parent', pt: 'Análise Familiar · Monoparental' },
+      kurzprofil:    { de: 'Kurzprofil · Einzelperson', en: 'Quick Profile · Individual', pt: 'Perfil Breve · Indivíduo' },
+      indivFrage:    { de: 'Individuelle Frage', en: 'Individual Question', pt: 'Questão Individual' },
+      themen:        { de: 'Themen', en: 'Topics', pt: 'Temas' },
+    };
+
+    // Grunddaten-Sektion: Feldlabels + Werte
+    const GD_L10N = {
+      labels: {
+        de: { thema: 'Thema', wen: 'Für wen', person: 'Person(en)', system: 'System', datum: 'Analysedatum' },
+        en: { thema: 'Topic', wen: 'For whom', person: 'Person(s)', system: 'System', datum: 'Analysis date' },
+        pt: { thema: 'Tema', wen: 'Para quem', person: 'Pessoa(s)', system: 'Sistema', datum: 'Data da análise' },
+      },
+      fuerWen: {
+        solo:          { de: 'Einzelperson', en: 'Individual', pt: 'Indivíduo' },
+        pair:          { de: 'Personenvergleich (zwei Personen)', en: 'Comparison of two people', pt: 'Comparação de duas pessoas' },
+        family:        { de: 'Familie', en: 'Family', pt: 'Família' },
+        solo_children: { de: 'Alleinerziehend mit Kind(ern)', en: 'Single parent with child(ren)', pt: 'Progenitor único com filho(s)' },
+      },
+      sys: {
+        num: { de: 'Numerologie & Astrologie', en: 'Numerology & Astrology', pt: 'Numerologia & Astrologia' },
+        hd:  { de: 'Human Design (BodyGraph)', en: 'Human Design (BodyGraph)', pt: 'Human Design (BodyGraph)' },
+      },
+      heute:        { de: 'heute', en: 'today', pt: 'hoje' },
+      ohneName:     { de: 'ohne Name', en: 'no name', pt: 'sem nome' },
+      datumFehlt:   { de: 'Datum fehlt', en: 'date missing', pt: 'data em falta' },
+      zeitUnbekannt:{ de: 'Zeit unbekannt', en: 'time unknown', pt: 'hora desconhecida' },
+    };
+
+    // Zahlenuebersicht-Beschriftungen (Sektion wird im CODE gebaut, nicht vom Modell)
+    const UEB_L10N = {
+      de: { header: 'Zahlenübersicht', intro: 'Alle berechneten Kernzahlen auf einen Blick, zum Nachschlagen und Kontrollieren.', geb: 'geb.', leben: 'Lebenszahl', ausdruckN: 'Ausdruckszahl', persN: 'Persönlichkeitszahl', seele: 'Seelendrang', geburtstag: 'Geburtstagszahl', pj: 'Persönliches Jahr', aktiv: 'aktiv', bis: 'bis', geburtsname: 'Geburtsname', ausdruck: 'Ausdruck', pers: 'Persönlichkeit', rufname: 'Rufname', gemeinsam: 'Gemeinsam', kompat: 'Kompatibilitätszahl (Beziehungscode)' },
+      en: { header: 'Numbers Overview', intro: 'All calculated core numbers at a glance, for reference and checking.', geb: 'b.', leben: 'Life Number', ausdruckN: 'Expression Number', persN: 'Personality Number', seele: 'Soul Urge', geburtstag: 'Birthday Number', pj: 'Personal Year', aktiv: 'active', bis: 'to', geburtsname: 'Birth name', ausdruck: 'Expression', pers: 'Personality', rufname: 'Preferred name', gemeinsam: 'Together', kompat: 'Compatibility Number (Relationship Code)' },
+      pt: { header: 'Resumo dos Números', intro: 'Todos os números centrais calculados num relance, para consulta e verificação.', geb: 'nasc.', leben: 'Número de Vida', ausdruckN: 'Número de Expressão', persN: 'Número de Personalidade', seele: 'Impulso da Alma', geburtstag: 'Número do Dia de Nascimento', pj: 'Ano Pessoal', aktiv: 'ativo', bis: 'a', geburtsname: 'Nome de nascimento', ausdruck: 'Expressão', pers: 'Personalidade', rufname: 'Nome usual', gemeinsam: 'Em conjunto', kompat: 'Número de Compatibilidade (Código da Relação)' },
+    };
+
+    // Human-Design-Gesundheitskompass: Pflicht-Disclaimer-Satz je Sprache
+    const HD_DISCLAIMER_L10N = {
+      de: 'Dieser Gesundheitskompass ist energetische Selbsterkenntnis, keine medizinische Diagnose oder Therapie. Bei gesundheitlichen Anliegen wende dich an aerztlichen Rat.',
+      en: 'This health compass is energetic self-knowledge, not a medical diagnosis or therapy. For any health concerns, seek medical advice.',
+      pt: 'Esta bússola de saúde é autoconhecimento energético, não um diagnóstico ou terapia médica. Para qualquer questão de saúde, procura aconselhamento médico.',
+    };
+
+    // Sektions-Titel-Glossar (deutscher Titel -> en/pt) fuer den Ausgabe-Kontrakt.
+    const SECTION_TITLES_L10N = {
+      'Auf einen Blick': { en: 'At a Glance', pt: 'Num Relance' },
+      'Der zentrale Code': { en: 'The Central Code', pt: 'O Código Central' },
+      'Die Menschen auf einen Blick': { en: 'The People at a Glance', pt: 'As Pessoas num Relance' },
+      'Schlüsseldaten des Paares': { en: "The Couple's Key Dates", pt: 'Datas-Chave do Casal' },
+      'Astrologische Kernverbindungen': { en: 'Core Astrological Connections', pt: 'Conexões Astrológicas Centrais' },
+      'Dein persönlicher Lebensweg': { en: 'Your Personal Life Path', pt: 'O Teu Caminho de Vida Pessoal' },
+      'Deine Namen-Energie': { en: 'Your Name Energy', pt: 'A Energia do Teu Nome' },
+      'Die Kinder': { en: 'The Children', pt: 'As Crianças' },
+      'Das Familiensystem': { en: 'The Family System', pt: 'O Sistema Familiar' },
+      'Herausforderung & Schlüssel': { en: 'Challenge & Key', pt: 'Desafio & Chave' },
+      'Aktuelles Persönliches Jahr im Detail': { en: 'Current Personal Year in Detail', pt: 'Ano Pessoal Atual em Detalhe' },
+      'Nächstes Persönliches Jahr': { en: 'Next Personal Year', pt: 'Próximo Ano Pessoal' },
+      'Jahresenergien-Tabelle über 6 Jahre': { en: 'Six-Year Energy Table', pt: 'Tabela de Energias de 6 Anos' },
+      'Pinnacles & Challenges': { en: 'Pinnacles & Challenges', pt: 'Pináculos & Desafios' },
+      'Namen-Numerologie': { en: 'Name Numerology', pt: 'Numerologia do Nome' },
+      'Erweiterte Zahlenebenen (Layer A)': { en: 'Extended Number Layers (Layer A)', pt: 'Camadas Numéricas Avançadas (Layer A)' },
+      'Essence Transit (Layer B)': { en: 'Essence Transit (Layer B)', pt: 'Trânsito de Essência (Layer B)' },
+      'Astrologische Tiefe (Layer C)': { en: 'Astrological Depth (Layer C)', pt: 'Profundidade Astrológica (Layer C)' },
+      'Persönlicher Tag am Analysedatum (Layer E)': { en: 'Personal Day on the Analysis Date (Layer E)', pt: 'Dia Pessoal na Data da Análise (Layer E)' },
+      'Kosmische Zyklen: Saturn & Jupiter (Layer F)': { en: 'Cosmic Cycles: Saturn & Jupiter (Layer F)', pt: 'Ciclos Cósmicos: Saturno & Júpiter (Layer F)' },
+      'Die vier Achsen (AC/DC/MC/IC)': { en: 'The Four Axes (AC/DC/MC/IC)', pt: 'Os Quatro Eixos (AC/DC/MC/IC)' },
+      'Lebensaufgabe & Seelenauftrag (Layer G)': { en: 'Life Task & Soul Purpose (Layer G)', pt: 'Tarefa de Vida & Missão da Alma (Layer G)' },
+      'Beruf & Berufung (Layer H)': { en: 'Career & Calling (Layer H)', pt: 'Profissão & Vocação (Layer H)' },
+      'Beziehungen & Partnerschaft (Layer I)': { en: 'Relationships & Partnership (Layer I)', pt: 'Relações & Parceria (Layer I)' },
+      'Geld & Wohlstand (Layer J)': { en: 'Money & Prosperity (Layer J)', pt: 'Dinheiro & Prosperidade (Layer J)' },
+      'Schatten & Wachstum (Layer M)': { en: 'Shadow & Growth (Layer M)', pt: 'Sombra & Crescimento (Layer M)' },
+      'Aktuelle Transite, 12 Monate (Layer K)': { en: 'Current Transits, 12 Months (Layer K)', pt: 'Trânsitos Atuais, 12 Meses (Layer K)' },
+      'Lebenszyklen & Wendepunkte (Layer L)': { en: 'Life Cycles & Turning Points (Layer L)', pt: 'Ciclos de Vida & Pontos de Viragem (Layer L)' },
+      'Entscheidungsradar (Layer O)': { en: 'Decision Radar (Layer O)', pt: 'Radar de Decisão (Layer O)' },
+      'Die Ahnenlinie': { en: 'The Ancestral Line', pt: 'A Linha Ancestral' },
+      'Namenswechsel & seine Energie': { en: 'Name Change & Its Energy', pt: 'Mudança de Nome & a Sua Energia' },
+      'Die Essenz': { en: 'The Essence', pt: 'A Essência' },
+      'Ritual & Affirmationen': { en: 'Ritual & Affirmations', pt: 'Ritual & Afirmações' },
+      'Kurz zu dir': { en: 'A Quick Word About You', pt: 'Uma Nota Breve sobre Ti' },
+      // Analyse-Titel je Modus
+      'Deine persönliche Analyse': { en: 'Your Personal Analysis', pt: 'A Tua Análise Pessoal' },
+      'Dein BodyGraph': { en: 'Your BodyGraph', pt: 'O Teu BodyGraph' },
+      'Euer BodyGraph': { en: 'Your Shared BodyGraph', pt: 'O Vosso BodyGraph' },
+      'Kurzprofil': { en: 'Quick Profile', pt: 'Perfil Breve' },
+      // Human Design solo
+      'Grunddaten': { en: 'Basics', pt: 'Dados de Base' },
+      'Dein Typ und deine Strategie': { en: 'Your Type and Strategy', pt: 'O Teu Tipo e Estratégia' },
+      'Deine innere Autorität': { en: 'Your Inner Authority', pt: 'A Tua Autoridade Interior' },
+      'Deine Zentren': { en: 'Your Centres', pt: 'Os Teus Centros' },
+      'Deine Kanäle und Tore': { en: 'Your Channels and Gates', pt: 'Os Teus Canais e Portões' },
+      'Dein Inkarnationskreuz': { en: 'Your Incarnation Cross', pt: 'A Tua Cruz de Encarnação' },
+      'Deine Variablen': { en: 'Your Variables', pt: 'As Tuas Variáveis' },
+      'Dein Gesundheitskompass': { en: 'Your Health Compass', pt: 'A Tua Bússola de Saúde' },
+      'Wie du dein Design lebst': { en: 'How to Live Your Design', pt: 'Como Viver o Teu Design' },
+      // Human Design Paar
+      'Wie ihr euch anzieht und reibt': { en: 'How You Attract and Chafe', pt: 'Como Se Atraem e Atritam' },
+      'Wo ihr euch tief versteht': { en: 'Where You Deeply Understand Each Other', pt: 'Onde Se Compreendem Profundamente' },
+      'Wo einer den anderen prägt': { en: 'Where One Shapes the Other', pt: 'Onde Um Molda o Outro' },
+      'Wo ihr euch anpasst': { en: 'Where You Adapt', pt: 'Onde Se Adaptam' },
+      'Was eure Verbindung neu erschafft': { en: 'What Your Connection Creates Anew', pt: 'O Que a Vossa Ligação Cria de Novo' },
+      'Reibung und Wachstum': { en: 'Friction and Growth', pt: 'Atrito e Crescimento' },
+      'Konkrete Schritte für eure Verbindung': { en: 'Concrete Steps for Your Connection', pt: 'Passos Concretos para a Vossa Ligação' },
+      // Kurzprofil
+      'Im Kern': { en: 'At the Core', pt: 'No Essencial' },
+      'Grundmuster & Antrieb': { en: 'Core Pattern & Drive', pt: 'Padrão Base & Impulso' },
+      'Typisches Verhalten': { en: 'Typical Behaviour', pt: 'Comportamento Típico' },
+      'Kommunikationsstil': { en: 'Communication Style', pt: 'Estilo de Comunicação' },
+      'Stärken': { en: 'Strengths', pt: 'Pontos Fortes' },
+      'Trigger & Reibungspunkte': { en: 'Triggers & Friction Points', pt: 'Gatilhos & Pontos de Atrito' },
+      // Beziehungs-Sektionstitel (BEZ_TYPEN.sektionTitel)
+      'Beziehungsdynamik der Partnerschaft': { en: 'Relationship Dynamics of the Partnership', pt: 'Dinâmica da Relação Amorosa' },
+      'Dynamik der Geschaeftspartnerschaft': { en: 'Dynamics of the Business Partnership', pt: 'Dinâmica da Parceria de Negócios' },
+      'Dynamik der Freundschaft': { en: 'Dynamics of the Friendship', pt: 'Dinâmica da Amizade' },
+      'Umgang mit deiner vorgesetzten Person': { en: 'Dealing with Your Superior', pt: 'Lidar com a Tua Chefia' },
+      'Fuehrung dieser mitarbeitenden Person': { en: 'Leading This Team Member', pt: 'Liderar Este Colaborador' },
+      'Dynamik im Kollegium': { en: 'Dynamics Within the Team', pt: 'Dinâmica na Equipa' },
+      'Geschwisterdynamik': { en: 'Sibling Dynamics', pt: 'Dinâmica entre Irmãos' },
+      'Begleitung dieses Kindes': { en: 'Guiding This Child', pt: 'Acompanhar Esta Criança' },
+    };
+
+    // Deckblatt-Titel in der Ausgabesprache (Bildschirm + Word)
+    function coverTitleL10N() {
+      const lang = RLANG();
+      const th = THEMEN[state.focus];
+      if (th && th.titel) {
+        if (lang === 'de') return th.titel;
+        return (THEMEN_L10N[state.focus] && THEMEN_L10N[state.focus].titel && THEMEN_L10N[state.focus].titel[lang]) || th.titel;
+      }
+      if (state.mode === 'humandesign' && state.constellation === 'pair') return REPORT_TITLES_L10N.hd_pair[lang];
+      return (REPORT_TITLES_L10N[state.mode] && REPORT_TITLES_L10N[state.mode][lang]) || REPORT_TITLES_L10N.full[lang];
+    }
+
+    // Thema-Label in der Ausgabesprache (fuer die Grunddaten-Sektion)
+    function themeLabelL10N() {
+      const lang = RLANG();
+      const th = THEMEN[state.focus];
+      const de = th ? th.label : (state.focus || '');
+      if (lang === 'de' || !th) return de;
+      return (THEMEN_L10N[state.focus] && THEMEN_L10N[state.focus].label && THEMEN_L10N[state.focus].label[lang]) || de;
+    }
+
+    // Ausgabe-Kontrakt: erzwingt bei en/pt die durchgaengige Zielsprache inkl. Titel.
+    function buildOutputContract() {
+      const lang = RLANG();
+      if (lang === 'de') return '';
+      const langName = lang === 'en' ? 'English' : 'European Portuguese (português europeu)';
+      const gl = GD_L10N.labels[lang];
+      const titleLines = Object.keys(SECTION_TITLES_L10N)
+        .map(de => { const t = SECTION_TITLES_L10N[de][lang]; return t ? `   «${de}» → «${t}»` : null; })
+        .filter(Boolean).join('\n');
+      const coreAtCore = lang === 'en' ? '[Name] at the Core' : '[Name] no Essencial';
+      const dynAs = lang === 'en' ? 'Your Dynamic as [type]' : 'A Vossa Dinâmica como [type]';
+      const getAlong = lang === 'en' ? 'How to Get Along Well with [Name]' : 'Como Lidar Bem com [Name]';
+      return `
+
+═══ CRITICAL OUTPUT-LANGUAGE CONTRACT (overrides every German word in the instructions below) ═══
+The instructions that follow are written in German for INTERNAL reference only. They tell you WHAT to write and HOW LONG — never copy German instruction text into your answer.
+Your ENTIRE output must be written in ${langName}: every section title, every heading, every sub-heading (### lines), every field label, every table label, and all body text. Do NOT output a single German word (keep only untranslatable proper names).
+TRANSLATE ALL SECTION TITLES. Wherever a German section title in «guillemets» appears below, output its ${langName} equivalent instead. Use exactly these translations:
+${titleLines}
+   «[Name] im Kern» → «${coreAtCore}» (same for the second person)
+   «Eure Dynamik als [type]» → «${dynAs}»
+   «So gehst du gut mit [Name] um» → «${getAlong}»
+Any sub-heading handed to you in German (relationship sub-sections, or a person name as «### Name») must also appear in ${langName}.
+In the basics section, use these field labels: ${gl.thema}, ${gl.wen}, ${gl.person}, ${gl.system}, ${gl.datum}.
+Human Design and astrology terms (type, authority, centres, gates, channels, zodiac signs, axes, nodes) must be rendered in ${langName}; keep only universally standard proper terms.
+Keep every structural marker EXACTLY as written: [ZAHL:…], [PERSON-CARD:…], [NAMEN-GRID-START], [PINNACLE:…], [QUARTAL:…], the «(PM X)» month tag, ~~~, ###, ✦, • — translate only the human-readable text inside them.
+═══════════════════════════════════════════════════════════════════════
+`;
+    }
+
     function buildPrompt(astroData, hdData) {
       astroData = astroData || {};
       const hasPair = state.constellation === 'pair' || state.constellation === 'family';
@@ -1894,7 +2132,7 @@ ${monthLines}${transitionNote}`;
         en: 'LANGUAGE: Write the entire analysis in English (modern, warm, informal "you"). STYLE: NO em-dashes (—) and NO en-dashes (–), use commas, colons, or short sentences instead. Hyphens in compound words are fine. Keep structural markers as technical tags, but content inside markers in English.',
         pt: 'IDIOMA: Escreve a análise inteira em português (preferencialmente europeu, caloroso, forma informal). ESTILO: SEM travessões (sem — e sem –), usa vírgulas, dois-pontos ou frases curtas. Hífenes em palavras compostas estão bem. Mantém marcadores estruturais como etiquetas técnicas, mas conteúdo dentro em português.',
       };
-      const langInstr = langInstructions[state.language] || langInstructions.de;
+      const langInstr = (langInstructions[state.language] || langInstructions.de) + buildOutputContract();
 
       // THEMEN-AUSRICHTUNG: verbindliche Richtung des Reports je nach gewaehltem Thema.
       // Numerologie nutzt .richtung, Human Design .hdRichtung (Fallback auf .richtung).
@@ -1905,10 +2143,14 @@ ${monthLines}${transitionNote}`;
         : '';
 
       // GRUNDDATEN-Block (zur Kontrolle: Was, fuer wen, auf welchen Daten). Erste Sektion jedes Reports.
-      const _fuerWen = { solo: 'Einzelperson', pair: 'Personenvergleich (zwei Personen)', family: 'Familie', solo_children: 'Alleinerziehend mit Kind(ern)' }[state.constellation] || state.constellation || 'Einzelperson';
-      const _gd = (pp) => pp ? `${pp.firstName || 'ohne Name'} — ${pp.birthDate || 'Datum fehlt'}${(pp.birthTime && pp.birthTime !== 'unbekannt') ? ', ' + pp.birthTime : ', Zeit unbekannt'}${pp.birthPlace ? ', ' + pp.birthPlace : ''}` : '';
-      const _sysName = state.system === 'humandesign' ? 'Human Design (BodyGraph)' : 'Numerologie & Astrologie';
-      const grunddatenBlock = `\nGRUNDDATEN (fuer die Pflicht-Sektion «Grunddaten» ganz am Anfang, exakt so wiedergeben):\n- Thema: ${themeLabel}\n- Fuer wen: ${_fuerWen}\n- Person(en): ${_gd(p1)}${p2 ? ' | ' + _gd(p2) : ''}\n- System: ${_sysName}\n- Analysedatum: ${state.analysisDate || 'heute'}`;
+      // Feldlabels + Werte folgen der gewaehlten Ausgabesprache, damit die Grunddaten-Sektion
+      // (die das Modell 1:1 wiedergibt) nicht auf Deutsch stehen bleibt.
+      const _RL = RLANG();
+      const _gdl = GD_L10N.labels[_RL];
+      const _fuerWen = (GD_L10N.fuerWen[state.constellation] && GD_L10N.fuerWen[state.constellation][_RL]) || state.constellation || GD_L10N.fuerWen.solo[_RL];
+      const _gd = (pp) => pp ? `${pp.firstName || GD_L10N.ohneName[_RL]} — ${pp.birthDate || GD_L10N.datumFehlt[_RL]}${(pp.birthTime && pp.birthTime !== 'unbekannt') ? ', ' + pp.birthTime : ', ' + GD_L10N.zeitUnbekannt[_RL]}${pp.birthPlace ? ', ' + pp.birthPlace : ''}` : '';
+      const _sysName = state.system === 'humandesign' ? GD_L10N.sys.hd[_RL] : GD_L10N.sys.num[_RL];
+      const grunddatenBlock = `\nGRUNDDATEN (fuer die Pflicht-Sektion «Grunddaten» ganz am Anfang, exakt so wiedergeben):\n- ${_gdl.thema}: ${themeLabelL10N()}\n- ${_gdl.wen}: ${_fuerWen}\n- ${_gdl.person}: ${_gd(p1)}${p2 ? ' | ' + _gd(p2) : ''}\n- ${_gdl.system}: ${_sysName}\n- ${_gdl.datum}: ${state.analysisDate || GD_L10N.heute[_RL]}`;
       const grunddatenInstr = `GRUNDDATEN (PFLICHT, ALLERERSTE Sektion, noch vor «Auf einen Blick», mit ~~~ abgetrennt): Titel «Grunddaten». Gib die oben gelieferten Grunddaten als kompakte Aufzaehlung wieder (Thema, Fuer wen, Person(en) mit den verwendeten Geburtsdaten, System, Analysedatum). Nur die Fakten, keine Deutung. Danach folgt «Auf einen Blick».`;
 
       // SCHLANKER FOKUS-REPORT: bei Fokus-Themen den Fundament-Teil zusammenziehen, Themen-Kapitel vertiefen.
@@ -2148,7 +2390,7 @@ AUSGABE-STRUKTUR (jede Sektion mit ~~~ abgetrennt, erste Zeile ist der Sektionst
 6. «Deine Kanaele und Tore»: die definierten Kanaele als Lebensthemen, die wichtigsten Tore. Verstaendlich, nicht als Aufzaehlung.
 7. «Dein Inkarnationskreuz»: das groessere Lebensthema, getragen von den vier Sonnen- und Erd-Toren.
 8. «Deine Variablen»: Determination, Umgebung, Motivation und Perspektive als feine Hinweise zur Lebensfuehrung (kurz und zugaenglich halten).
-9. «Dein Gesundheitskompass» (energetische Lebensfuehrung, im Geist der typgerechten Vitalitaetsarbeit): leite aus Typ, Strategie, Autoritaet, definierten vs. offenen Zentren und der Determination Hinweise zu Energiehaushalt, Erholung, Ernaehrungs-Rhythmus und Stressmustern ab. Deute die OFFENEN Zentren als koerperlich-seelische Lernfelder (z.B. offene Wurzel: Druck und Hetze; offener Solarplexus: fremde Emotionen; offene Milz: Umgang mit Aengsten und Gesundheitssignalen). KEINE Diagnosen, KEINE Heilversprechen, keine konkreten Praeparate oder Dosierungen, keine Symptom-Tabellen. Beginne diese Sektion mit dem Satz: «Dieser Gesundheitskompass ist energetische Selbsterkenntnis, keine medizinische Diagnose oder Therapie. Bei gesundheitlichen Anliegen wende dich an aerztlichen Rat.»
+9. «Dein Gesundheitskompass» (energetische Lebensfuehrung, im Geist der typgerechten Vitalitaetsarbeit): leite aus Typ, Strategie, Autoritaet, definierten vs. offenen Zentren und der Determination Hinweise zu Energiehaushalt, Erholung, Ernaehrungs-Rhythmus und Stressmustern ab. Deute die OFFENEN Zentren als koerperlich-seelische Lernfelder (z.B. offene Wurzel: Druck und Hetze; offener Solarplexus: fremde Emotionen; offene Milz: Umgang mit Aengsten und Gesundheitssignalen). KEINE Diagnosen, KEINE Heilversprechen, keine konkreten Praeparate oder Dosierungen, keine Symptom-Tabellen. Beginne diese Sektion mit diesem Satz (in der Ausgabesprache): «${HD_DISCLAIMER_L10N[RLANG()]}»
 10. «Wie du dein Design lebst»: drei bis fuenf konkrete, ermutigende Schritte fuer den Alltag.
 Zum Schluss [ESSENZ:Text] als ein warmer Kernsatz.
 
@@ -2475,22 +2717,30 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     // Themen bzw. die individuelle Frage). full=true fuer den Bildschirm (mit Themen/
     // Frage), full=false fuer den kompakten Word-Titel.
     function reportDescriptor(full = true) {
-      const cLabels = { solo: 'Einzelanalyse', pair: 'Paaranalyse', family: 'Familienanalyse', solo_children: 'Familienanalyse · Alleinerziehend' };
-      if (state.mode === 'kurzprofil') return 'Kurzprofil · Einzelperson';
+      const lang = RLANG();
+      const pick = (m) => (m && (m[lang] || m.de)) || '';
+      if (state.mode === 'kurzprofil') return pick(DESC_L10N.kurzprofil);
       if (state.mode === 'individual' || state.mode === 'humandesign_individual') {
         const preset = AUFTRAG_PRESETS[state.auftragPreset];
-        const presetLabel = (preset && preset.label) ? preset.label : null;
+        let presetLabel = (preset && preset.label) ? preset.label : null;
+        if (presetLabel && lang !== 'de' && AUFTRAG_LABEL_L10N[state.auftragPreset]) {
+          presetLabel = AUFTRAG_LABEL_L10N[state.auftragPreset][lang] || presetLabel;
+        }
         const q = (val('auftrag-text') || '').trim();
-        const base = 'Individuelle Frage';
-        if (presetLabel && presetLabel !== 'Individueller Auftrag') return `${base} · ${presetLabel}`;
+        const base = pick(DESC_L10N.indivFrage);
+        if (presetLabel && state.auftragPreset && state.auftragPreset !== 'individual') return `${base} · ${presetLabel}`;
         if (full && q) { const qs = q.length > 90 ? q.slice(0, 88) + '…' : q; return `${base}: ${qs}`; }
         return base;
       }
-      const parts = [cLabels[state.constellation] || 'Einzelanalyse'];
+      const parts = [pick(DESC_L10N[state.constellation] || DESC_L10N.solo)];
       if (state.constellation === 'pair') {
         const bt = BEZ_TYPEN[state.relationshipType];
-        if (bt && bt.label) parts.push(bt.label);
-        if (full && state.themes && state.themes.length) parts.push('Themen: ' + state.themes.join(', '));
+        let btLabel = bt && bt.label;
+        if (btLabel && lang !== 'de' && BEZ_LABEL_L10N[state.relationshipType]) {
+          btLabel = BEZ_LABEL_L10N[state.relationshipType][lang] || btLabel;
+        }
+        if (btLabel) parts.push(btLabel);
+        if (full && state.themes && state.themes.length) parts.push(pick(DESC_L10N.themen) + ': ' + state.themes.join(', '));
       }
       return parts.join(' · ');
     }
@@ -2613,10 +2863,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       const nameEl = document.getElementById('result-name');
       if (nameEl) nameEl.textContent = name;
 
-      // Titel pro Analyse-Modus
-      const REPORT_TITLES = { full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' };
-      const _themeTitel = (THEMEN[state.focus] && THEMEN[state.focus].titel) || null;
-      const reportTitle = _themeTitel || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : (REPORT_TITLES[state.mode] || 'Deine Seelenlandschaft'));
+      // Titel pro Analyse-Modus — folgt der gewaehlten Ausgabesprache (Bildschirm + Word)
+      const reportTitle = coverTitleL10N();
       const titleEl = document.getElementById('result-hero-title');
       if (titleEl) titleEl.textContent = reportTitle;
       const subEl = document.getElementById('result-subtitle');
@@ -3183,7 +3431,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
         const res = await fetch('/api/generate-docx', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rawText, name, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, skipDrive: !!state.fromJob, language: state.language, title: ((state.fromJob && state.jobTitle) || (THEMEN[state.focus] && THEMEN[state.focus].titel) || ((state.mode === 'humandesign' && state.constellation === 'pair') ? 'Euer BodyGraph' : ({ full: 'Deine Seelenlandschaft', individual: 'Deine persönliche Analyse', humandesign: 'Dein BodyGraph', humandesign_individual: 'Deine persönliche Analyse', kurzprofil: 'Kurzprofil' })[state.mode])) || undefined, subtitle: reportDescriptor(true) }),
+          body: JSON.stringify({ rawText, name, geburtsdatum, nachname, vorname, analyseTyp, auftragstyp, skipDrive: !!state.fromJob, language: state.language, title: ((state.fromJob && state.jobTitle) || coverTitleL10N()) || undefined, subtitle: reportDescriptor(true) }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
