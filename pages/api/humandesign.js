@@ -15,6 +15,7 @@ import tzlookup from 'tz-lookup';
 import { DateTime } from 'luxon';
 import { buildChart, norm360 } from '../../lib/humandesign';
 import { getEphemeris, SE, MOSEPH_SPEED } from '../../lib/ephemeris';
+import { geocodePlace } from '../../lib/geocode';
 
 export const config = { maxDuration: 30 };
 
@@ -57,18 +58,6 @@ function findDesignJd(eph, jdBirth) {
   return jd;
 }
 
-// einfache Geokodierung ueber Open-Meteo (kostenlos, kein Key); nur fuer die
-// Zeitzonen-Bestimmung noetig — HD-Laengengrade sind ortsunabhaengig.
-async function geocode(place) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(place)}&count=1&language=de&format=json`;
-  const r = await fetch(url);
-  if (!r.ok) return null;
-  const j = await r.json();
-  const hit = j && j.results && j.results[0];
-  if (!hit) return null;
-  return { lat: hit.latitude, lon: hit.longitude, display: `${hit.name}${hit.country ? ', ' + hit.country : ''}` };
-}
-
 function jdToDate(eph, jd) {
   const o = eph.revjul(jd, SE.GREG_CAL);
   const hh = Math.floor(o.hour); const mm = Math.floor((o.hour - hh) * 60);
@@ -89,10 +78,16 @@ export default async function handler(req, res) {
     // Koordinaten: entweder mitgeliefert (vom Astrologie-Call wiederverwendet) oder geokodieren.
     let coords = null;
     if (typeof lat === 'number' && typeof lonIn === 'number') coords = { lat, lon: lonIn, display: birthPlace || '' };
-    else if (birthPlace) coords = await geocode(birthPlace);
-    if (!coords) return res.status(200).json({ available: false, reason: 'Geburtsort konnte nicht geokodiert werden — Zeitzone unbestimmt.' });
+    else if (birthPlace) coords = await geocodePlace(birthPlace);
+    if (!coords) {
+      return res.status(200).json({
+        available: false,
+        reason: `Geburtsort «${birthPlace || ''}» konnte nicht gefunden werden — Zeitzone unbestimmt. Bitte den Ortsnamen pruefen (Stadt genuegt, z.B. «Rio de Janeiro»).`,
+      });
+    }
 
-    const zone = tzlookup(coords.lat, coords.lon);
+    // Zeitzone bevorzugt direkt vom Geocoder, sonst geografisch bestimmt.
+    const zone = coords.timezone || tzlookup(coords.lat, coords.lon);
     let Y, M, D;
     if (birthDate.includes('.')) { const [d, m, y] = birthDate.split('.').map(Number); Y = y; M = m; D = d; }
     else { const [y, m, d] = birthDate.split('-').map(Number); Y = y; M = m; D = d; }
@@ -111,7 +106,7 @@ export default async function handler(req, res) {
       available: true,
       meta: {
         zone, birthUtc: utc.toISO(), designUtc,
-        coords: { lat: +coords.lat.toFixed(4), lon: +coords.lon.toFixed(4), display: coords.display },
+        coords: { lat: +coords.lat.toFixed(4), lon: +coords.lon.toFixed(4), display: coords.display, source: coords.source || null },
         node: 'true', ephemeris: 'Moshier',
       },
       ...chart,

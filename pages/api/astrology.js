@@ -12,6 +12,7 @@
 // (Human Design nutzt dagegen den WAHREN Knoten.)
 
 import { getEphemeris, SE } from '../../lib/ephemeris';
+import { geocodePlace } from '../../lib/geocode';
 
 export const config = { maxDuration: 30 };
 
@@ -36,35 +37,13 @@ function fmtPos(p) {
   return `${p.sign} ${p.degree}°${String(p.minute).padStart(2, '0')}'`;
 }
 
-// Geocoding via Nominatim (OpenStreetMap, kostenlos, ~1 req/sec Limit)
-async function geocode(place) {
-  if (!place) return null;
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'familien-code-v2/1.0 (numerology app)' },
-    });
-    const data = await res.json();
-    if (data && data.length > 0) {
-      return {
-        lat: parseFloat(data[0].lat),
-        lon: parseFloat(data[0].lon),
-        display: data[0].display_name,
-      };
-    }
-  } catch (err) {
-    console.error('Geocoding error:', err.message);
-  }
-  return null;
-}
-
 // Lokale Geburtszeit -> UT, korrekt ueber Zeitzone des Geburtsorts inkl. historischer DST.
-function toUniversalTime(year, month, day, hour, minute, lat, lon) {
+function toUniversalTime(year, month, day, hour, minute, lat, lon, zoneHint) {
   const hourDecimal = hour + minute / 60;
   try {
     const tzlookup = require('tz-lookup');
     const { DateTime } = require('luxon');
-    const tzName = tzlookup(lat, lon);
+    const tzName = zoneHint || tzlookup(lat, lon);
     const local = DateTime.fromObject(
       { year, month, day, hour, minute },
       { zone: tzName }
@@ -126,12 +105,12 @@ export default async function handler(req, res) {
   // Geocode place if given
   let coords = null;
   if (birthPlace) {
-    coords = await geocode(birthPlace);
+    coords = await geocodePlace(birthPlace);
   }
   const lat = coords ? coords.lat : 46.8;
   const lon = coords ? coords.lon : 8.2;
 
-  const utc = toUniversalTime(year, month, day, hour, minute, lat, lon);
+  const utc = toUniversalTime(year, month, day, hour, minute, lat, lon, coords && coords.timezone);
   const julDay = eph.julday(utc.year, utc.month, utc.day, utc.utHour);
 
   // Synchroner Positions-Helfer

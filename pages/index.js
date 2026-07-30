@@ -3555,7 +3555,71 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
     }
 
     // Lead gate input listeners
+    // ── LIVE-ORT-PRUEFER ───────────────────────────────────────────
+    // Zeigt pro Geburtsort-Feld direkt an, ob der Ort gefunden wird, wie er
+    // aufgeloest wird und welche Zeitzone gilt. Rein informativ; blockiert
+    // die Report-Erstellung nie. Faengt via Event-Delegation auch die
+    // dynamisch erzeugten Kind- und Ahnen-Felder ab.
+    const PLACE_FIELD = (el) => el && el.tagName === 'INPUT' &&
+      (/-birthplace$/.test(el.id) || el.id === 'anc-mother-place' || el.id === 'anc-father-place');
+    const placeTimers = {};
+    const placeCache = {};
+    const placeSeq = {};
+
+    function placeStatusEl(input) {
+      let box = input.parentNode.querySelector('.place-check');
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'place-check';
+        input.parentNode.appendChild(box);
+      }
+      return box;
+    }
+    function setPlaceStatus(input, cls, html) {
+      const box = placeStatusEl(input);
+      box.className = 'place-check' + (cls ? ' ' + cls : '');
+      box.innerHTML = html || '';
+    }
+    async function checkPlace(input) {
+      const q = (input.value || '').trim();
+      if (!q) { setPlaceStatus(input, '', ''); return; }
+      if (placeCache[q]) { renderPlace(input, placeCache[q]); return; }
+      setPlaceStatus(input, 'loading', '<span class="pc-dot"></span> Ort wird geprüft …');
+      const seq = (placeSeq[input.id] = (placeSeq[input.id] || 0) + 1);
+      try {
+        const r = await fetch('/api/geocode-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ place: q }),
+        });
+        const data = await r.json();
+        if (seq !== placeSeq[input.id]) return;      // veraltete Antwort verwerfen
+        if ((input.value || '').trim() !== q) return; // Feld hat sich geaendert
+        placeCache[q] = data;
+        renderPlace(input, data);
+      } catch (err) {
+        if (seq !== placeSeq[input.id]) return;
+        setPlaceStatus(input, 'bad', '⚠ Prüfung nicht möglich (Verbindung). Report funktioniert trotzdem.');
+      }
+    }
+    function renderPlace(input, data) {
+      if (!data || !data.found) {
+        setPlaceStatus(input, 'bad', '✗ Ort nicht gefunden — bitte Schreibweise prüfen. Meist genügt die Stadt (z.B. «Rio de Janeiro»).');
+        return;
+      }
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const tz = data.timezone ? ` · <span class="pc-tz">${esc(data.timezone)}</span>` : '';
+      const approx = data.approx ? ' <span class="pc-approx">(ungefähr — Zeitzone stimmt)</span>' : '';
+      setPlaceStatus(input, 'ok', `✓ ${esc(data.display)}${tz}${approx}`);
+    }
+
     document.addEventListener('input', (e) => {
+      if (PLACE_FIELD(e.target)) {
+        const input = e.target;
+        clearTimeout(placeTimers[input.id]);
+        if (!input.value.trim()) { setPlaceStatus(input, '', ''); return; }
+        placeTimers[input.id] = setTimeout(() => checkPlace(input), 650);
+      }
       if (e.target.id === 'lead-name' || e.target.id === 'lead-email') validateLead();
       if (e.target.id === 'p1-kundennummer') knManual = true;
       if (e.target.id === 'p1-firstname' || e.target.id === 'p1-lastname' || e.target.id === 'p1-birthdate') {
@@ -4018,6 +4082,25 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
           .toggle-box.on { background: var(--rose); }
           .toggle-box::after { content: ''; position: absolute; width: 15px; height: 15px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
           .toggle-box.on::after { transform: translateX(15px); }
+
+          /* ── LIVE-ORT-PRUEFER ────────────────────────────────────── */
+          .place-check {
+            font-size: 11px; line-height: 1.5; letter-spacing: 0.2px;
+            margin-top: 8px; min-height: 0; font-style: normal;
+            transition: color 0.2s; word-break: break-word;
+          }
+          .place-check:empty { display: none; }
+          .place-check.loading { color: var(--silver); }
+          .place-check.ok { color: #4f7a52; }
+          .place-check.bad { color: var(--rose); }
+          .place-check .pc-tz { color: var(--muted); font-weight: 500; }
+          .place-check .pc-approx { color: var(--silver); font-style: italic; }
+          .place-check .pc-dot {
+            display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+            background: var(--gold-light); margin-right: 4px;
+            animation: pcPulse 0.9s ease-in-out infinite;
+          }
+          @keyframes pcPulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
 
           /* ── AHNENLINIE ──────────────────────────────────────────── */
           .ancestor-block {
