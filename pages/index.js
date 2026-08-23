@@ -1367,11 +1367,42 @@ AHNENLINIE — was aus der Familie mitschwingt (optional eingegeben):${mLine}${f
       }
       return out;
     }
-    // Schwellenmonate identifizieren (PM == PJ, Master Number, oder PM == LZ)
+    // Welches Persönliche Jahr ist in (year, calendarMonth) aktiv? Die PJ-Spanne startet
+    // am Geburtstag: ab dem Geburtsmonat gilt das PJ des laufenden Kalenderjahres, davor das
+    // des Vorjahres. So kann ein rollender 12-Monats-Block den PJ-Wechsel korrekt abbilden.
+    function personalYearForMonth(info, year, calendarMonth) {
+      const spanStartYear = (calendarMonth >= info.birthMonth) ? year : year - 1;
+      return calcPJ(info.birthDay, info.birthMonth, spanStartYear);
+    }
+    // Rollende 12 Monate AB HEUTE (nicht ab Geburtstag). Der Detail-Teil des Jahresausblicks
+    // soll IMMER die kommenden 12 Monate ab heute abdecken; am Geburtstag wechselt das PJ,
+    // was hier pro Monat berücksichtigt wird (jeder Monat trägt sein eigenes PJ + PM).
+    function getPersonalMonthsRolling(birthDate) {
+      const info = getPersonalYearInfo(birthDate);
+      if (!info) return [];
+      const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+      const today = getRefDate();
+      const startIdx = today.getMonth();     // 0-11 = aktueller Kalendermonat
+      const startYear = today.getFullYear();
+      const out = [];
+      for (let i = 0; i < 12; i++) {
+        const abs = startIdx + i;
+        const monthIdx = abs % 12;
+        const calendarMonth = monthIdx + 1;
+        const year = startYear + Math.floor(abs / 12);
+        const pj = personalYearForMonth(info, year, calendarMonth);
+        const pm = red(pj + calendarMonth);
+        const isBirthdayMonth = calendarMonth === info.birthMonth;
+        out.push({ name: monthNames[monthIdx], calendarMonth, year, pm, pj, isBirthdayMonth });
+      }
+      return out;
+    }
+    // Schwellenmonate identifizieren (PM == PJ des Monats, Master Number, oder PM == LZ)
     function identifyKeyMonths(months, currentPJ, lifeNumber) {
       return months.map(m => {
         const flags = [];
-        if (m.pm === currentPJ) flags.push('Verdichtungsmonat (PM = PJ)');
+        const monthPJ = (m.pj != null) ? m.pj : currentPJ;
+        if (m.pm === monthPJ) flags.push('Verdichtungsmonat (PM = PJ)');
         if (m.pm === 11 || m.pm === 22 || m.pm === 33) flags.push('Meistermonat');
         if (lifeNumber && m.pm === lifeNumber) flags.push('Lebensaufgabe-Echo (PM = LZ)');
         return { ...m, flags };
@@ -1756,14 +1787,19 @@ C) ASTROLOGIE-TIEFE — verwende AUSSCHLIESSLICH die exakt vorberechneten Werte 
       const info = getPersonalYearInfo(p.birthDate);
       if (!info) return '';
       const lz = lifeNum(p.birthDate);
-      const months = identifyKeyMonths(getPersonalMonths(p.birthDate), info.currentPJ, lz);
+      // Rollende 12 Monate AB HEUTE (nicht ab Geburtstag) — der Detail-Teil ist immer vorwärtsgerichtet.
+      const months = identifyKeyMonths(getPersonalMonthsRolling(p.birthDate), info.currentPJ, lz);
       const cm = getCurrentPersonalMonth(p.birthDate);
       const today = getRefDate();
       const todayStr = `${String(today.getDate()).padStart(2,'0')}.${String(today.getMonth()+1).padStart(2,'0')}.${today.getFullYear()}`;
+      const bdayStr = `${String(info.birthDay).padStart(2,'0')}.${String(info.birthMonth).padStart(2,'0')}.`;
+      const firstM = months[0] ? `${String(months[0].calendarMonth).padStart(2,'0')}/${months[0].year}` : '';
+      const lastM = months[11] ? `${String(months[11].calendarMonth).padStart(2,'0')}/${months[11].year}` : '';
 
       const monthLines = months.map(m => {
         const flag = m.flags.length ? ` [${m.flags.join(' · ')}]` : '';
-        return `  ${String(m.calendarMonth).padStart(2,'0')}/${m.year} ${m.name.padEnd(10)} → PM ${m.pm}${flag}`;
+        const sw = m.isBirthdayMonth ? ` ⇄ GEBURTSTAG ${bdayStr} — PJ wechselt hier auf ${m.pj}` : '';
+        return `  ${String(m.calendarMonth).padStart(2,'0')}/${m.year} ${m.name.padEnd(10)} → PJ ${m.pj}, PM ${m.pm}${flag}${sw}`;
       }).join('\n');
 
       const transitionNote = info.inTransition
@@ -1800,7 +1836,7 @@ PERSOENLICHES JAHR IM DETAIL — ${label} (heute: ${todayStr}):
 - Übernächstes PJ ab ${String(info.birthDay).padStart(2,'0')}.${String(info.birthMonth).padStart(2,'0')}.${info.endYear + 1}: ${info.nextPJ2}
 ${tarotBlock}${tarotNext}
 
-12 PERSOENLICHE MONATE DES AKTUELLEN PJ ${info.currentPJ}:
+12 PERSOENLICHE MONATE AB HEUTE (rollend, ${firstM} bis ${lastM}) — DER DETAIL-TEIL DECKT IMMER DIESE 12 MONATE AB HEUTE AB, NICHT das vergangene Persönliche Jahr. Am Geburtstag (${bdayStr}) wechselt das PJ von ${info.currentPJ} auf ${info.nextPJ}; der mit ⇄ markierte Monat ist der Wechselmonat, den du im Text explizit als Übergang benennst:
 ${monthLines}${transitionNote}`;
     }
 
@@ -2614,7 +2650,7 @@ ${multiPerson ? '' : `8. Aktuelles Persönliches Jahr im Detail${hasPair ? `. WI
    (a) Beginne mit [PJ-HEADER:Persönliches Jahr von [Name]|PJ-Zahl|Startdatum bis Enddatum]. Werte aus dem PERSOENLICHES JAHR IM DETAIL-Block oben übernehmen — pro Person die jeweils korrekten Werte.
    (b) Eröffnungs-Absatz von 250 bis 350 Wörtern zum Gesamt-Thema.
    (c) Vier Quartals-Blöcke mit [QUARTAL:Titel|Zeitraum]. Pro Quartal ein Fliesstext (200 bis 300 Wörter), der die Bewegung des Quartals beschreibt.
-   (d) PFLICHT: Direkt UNTER jedem Quartals-Fliesstext folgt eine kompakte Monatsliste als echte Aufzählung. JEDER Monat des Quartals bekommt GENAU EINE Bullet-Zeile, exakt im Format «• Monat Jahr (PM X): ein bis zwei Sätze zur Kernenergie des Monats». Verwende echte Bullet-Zeilen, die mit «• » beginnen — NIEMALS eine Spezialmarkierung. ALLE ZWÖLF Monate des Persönlichen Jahres (von Startmonat bis Startmonat, z.B. November 2025 bis Oktober 2026) MÜSSEN lückenlos erscheinen, verteilt auf die vier Quartale (3 Monate pro Quartal). KEIN Monat darf fehlen. Besondere Monate (Meisterzahl wie PM 11/22, PM gleich der Lebenszahl, Verdichtung) kennzeichnest du am Zeilenanfang zusätzlich mit «★ » und gibst ihnen etwas mehr Detail, aber sie stehen TROTZDEM als Bullet-Zeile in der Monatsliste, nicht separat.
+   (d) PFLICHT: Direkt UNTER jedem Quartals-Fliesstext folgt eine kompakte Monatsliste als echte Aufzählung. JEDER Monat des Quartals bekommt GENAU EINE Bullet-Zeile, exakt im Format «• Monat Jahr (PM X): ein bis zwei Sätze zur Kernenergie des Monats». Verwende echte Bullet-Zeilen, die mit «• » beginnen — NIEMALS eine Spezialmarkierung. Der Detail-Teil deckt IMMER die kommenden 12 Monate AB HEUTE ab (rollend), also GENAU die 12 Monate aus dem «PERSOENLICHES JAHR IM DETAIL»-Block oben (vom aktuellen Monat bis 12 Monate später), NICHT das bereits laufende Persönliche Jahr ab Geburtstag und KEINE bereits vergangenen Monate. Diese 12 Monate MÜSSEN lückenlos erscheinen, verteilt auf die vier Quartale (3 Monate pro Quartal). Wichtig: Am Geburtstag wechselt mitten in diesem Zeitraum das Persönliche Jahr (im Block mit ⇄ markiert) — benenne diesen Wechsel an der richtigen Stelle explizit und nutze pro Monat die im Block angegebene PM-Zahl (die sich nach dem Wechsel entsprechend ändert). KEIN Monat darf fehlen. Besondere Monate (Meisterzahl wie PM 11/22, PM gleich der Lebenszahl, Verdichtung) kennzeichnest du am Zeilenanfang zusätzlich mit «★ » und gibst ihnen etwas mehr Detail, aber sie stehen TROTZDEM als Bullet-Zeile in der Monatsliste, nicht separat.
    (e) Abschluss-Absatz mit Übergangsphase / Wechsel zum nächsten PJ (mindestens 200 Wörter).
 
 9. Nächstes Persönliches Jahr${hasPair ? ` — separat für ${p1.firstName || 'Person 1'} und ${p2?.firstName || 'Person 2'}` : ''}, mindestens ${hasPair ? '1200 Wörter (600 pro Person)' : '600 Wörter'}, mit [PJ-HEADER:Nächstes Persönliches Jahr von [Name]|PJ-Zahl|Startdatum bis Enddatum] und substanzieller Beschreibung des Hauptthemas, des Wechsel-Charakters und der konkreten Änderungen.`}
