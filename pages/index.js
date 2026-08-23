@@ -377,9 +377,19 @@ export default function Home() {
         kernSektionen: 'Geld & Wohlstand (Layer J), die Finanztalente und das Verhaeltnis zu Geld, Sicherheit und Fuelle, moegliche Fuelle-Blockaden und Hebel, sowie das aktuelle Timing fuer finanzielle Schritte (Persoenliches Jahr)',
         richtung: 'SCHWERPUNKT GELD & WOHLSTAND (ABGRENZUNG): Nur die finanzielle Achse: das Verhaeltnis zu Geld, Sicherheit und Fuelle, die Finanztalente, Werte und Risikobereitschaft, typische Blockaden und Hebel, plus das Timing finanzieller Schritte ueber das Persoenliche Jahr. Nutze Layer J (Geld & Wohlstand) als Kern, dazu Lebenszahl, Ausdruckszahl und die Werte-Themen (Venus). KEINE Berufs-Detailanalyse (dafuer gibt es das eigene Thema Beruf), keine Beziehungs-, Familien- oder allgemeinen Seelenwegkapitel. Konkret und ehrlich, ermutigend, ohne die Schattenthemen (z.B. Konsum als Flucht) zu beschoenigen. Dies ist energetische Selbsterkenntnis, keine rechtliche oder Anlage-Finanzberatung.',
       },
+      // INDIVIDUELLE ANALYSE (freier Auftrag): keine feste Sektionsstruktur, sondern eine
+      // frei formulierte Frage/Auftrag. isIndividual schaltet in applyTheme() auf mode
+      // 'individual' (bzw. 'humandesign_individual') und fuehrt ueber den Auftrags-Screen.
+      individuell: {
+        label: 'Individuelle Analyse', icon: '✎', desc: 'Freie Frage · dein eigener Auftrag',
+        titel: 'Deine individuelle Analyse', dateiPrefix: 'Analyse',
+        systems: ['numerologie', 'humandesign'], konstellationen: ['solo'], depth: 12,
+        isIndividual: true,
+        richtung: '',
+      },
     };
     // Reihenfolge der Themen-Kacheln im UI
-    const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'seelenmission', 'kinder', 'jahresausblick', 'beruf', 'wohlstand', 'entscheidung', 'familie', 'energie'];
+    const THEMEN_ORDER = ['gesamtbild', 'beziehung', 'lebensweg', 'seelenmission', 'kinder', 'jahresausblick', 'beruf', 'wohlstand', 'entscheidung', 'familie', 'energie', 'individuell'];
 
     // ── FLOW ───────────────────────────────────────────────────────
     // Effektiv erlaubte Konstellationen eines Themas (bei Human Design nur solo/pair).
@@ -404,7 +414,7 @@ export default function Home() {
       const hd = sys === 'humandesign';
       // Human Design bleibt bewusst schlank: solo => Gesamtbild + Gesundheit & Energie,
       // pair => Beziehungsdynamik (Connection Chart). Sonst nichts.
-      const hdAllowed = (konst === 'pair') ? ['beziehung'] : ['gesamtbild', 'energie'];
+      const hdAllowed = (konst === 'pair') ? ['beziehung'] : ['gesamtbild', 'energie', 'individuell'];
       return THEMEN_ORDER.filter(key => {
         const th = THEMEN[key];
         if (!th) return false;
@@ -423,6 +433,12 @@ export default function Home() {
       front.push('theme');
       const t = THEMEN[state.focus];
       if (!t) return front;
+
+      // Individuelle Analyse (freier Auftrag): Einzelperson -> Auftrags-Screen -> Ergebnis.
+      // Gilt fuer Numerologie ('individual') wie Human Design ('humandesign_individual').
+      if (state.mode === 'individual' || state.mode === 'humandesign_individual') {
+        return [...front, 'person1', 'auftrag', 'loading', 'result'];
+      }
 
       if (state.system === 'humandesign') {
         // Human Design: eigenstaendiger BodyGraph. Einzel oder Paar (Connection).
@@ -454,8 +470,18 @@ export default function Home() {
       if (!t) return;
       state.focus = id;
       state.depth = t.depth;
-      state.art = 'standard';
       // System UND Konstellation sind bereits gewaehlt (Schritt 1 + 2) -> NICHT ueberschreiben.
+      if (t.isIndividual) {
+        // Individuelle Analyse: freier Auftrag statt fester Sektionsstruktur.
+        state.art = 'individuell';
+        state.mode = (state.system === 'humandesign') ? 'humandesign_individual' : 'individual';
+      } else {
+        state.art = 'standard';
+        // Falls vorher die individuelle Kachel gewaehlt war: mode auf Standard zuruecksetzen.
+        if (state.mode === 'individual' || state.mode === 'humandesign_individual') {
+          state.mode = (state.system === 'humandesign') ? 'humandesign' : 'full';
+        }
+      }
     }
 
     let cur = 'splash';
@@ -4957,6 +4983,7 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
               ['entscheidung', '⟁', 'Übergänge & Entscheidungen', 'Wegkreuzungen klären, richtig entscheiden'],
               ['familie', '✦', 'Familiendynamik', 'Wie die Energien im System zusammenspielen'],
               ['energie', '△', 'Gesundheit & Energie', 'Energiehaushalt, Vitalität & Regeneration'],
+              ['individuell', '✎', 'Individuelle Analyse', 'Freie Frage · dein eigener Auftrag'],
             ].map(([value, icon, title, desc]) => (
               <div className="select-card" data-card-type="theme" data-value={value} key={value}>
                 <div className="card-top"><div className="card-icon">{icon}</div><div className="card-check">✓</div></div>
