@@ -2279,7 +2279,7 @@ EXIGIDO: frases curtas e claras; deixa uma frase forte sozinha; varia o ritmo; i
 - Offene Zentren: ${ci.centers.openDe.join(', ') || 'keine'}
 - Kanaele: ${channelsI}
 - Aktivierte Tore: ${ci.gates.map(g => g.gate).join(', ')}
-- Inkarnationskreuz: ${ci.incarnationCross.notation}, ${ci.incarnationCross.angle}`;
+- Inkarnationskreuz: ${ci.incarnationCross.name || ''} ${ci.incarnationCross.notation}, ${ci.incarnationCross.angle}${ci.incarnationCross.deutung ? `\n  Deutungsmaterial zum Kreuz (Hintergrund, NICHT woertlich uebernehmen, in der Ausgabesprache frei formulieren): ${ci.incarnationCross.deutung}` : ''}`;
 
         return `${intro}
 
@@ -2426,8 +2426,8 @@ ${fmtAct('personality')}
  Design (unbewusst, 88 Grad Sonnenbogen vor Geburt):
 ${fmtAct('design')}
 
-INKARNATIONSKREUZ: ${c.incarnationCross.notation}, ${c.incarnationCross.angle}
- (Tore: Persoenlichkeit Sonne ${c.incarnationCross.gates.personalitySun} / Erde ${c.incarnationCross.gates.personalityEarth}, Design Sonne ${c.incarnationCross.gates.designSun} / Erde ${c.incarnationCross.gates.designEarth})
+INKARNATIONSKREUZ: ${c.incarnationCross.name || ''} ${c.incarnationCross.notation}, ${c.incarnationCross.angle}${c.incarnationCross.winkelBedeutung ? ` — ${c.incarnationCross.winkelBedeutung}` : ''}
+ (Tore: Persoenlichkeit Sonne ${c.incarnationCross.gates.personalitySun} / Erde ${c.incarnationCross.gates.personalityEarth}, Design Sonne ${c.incarnationCross.gates.designSun} / Erde ${c.incarnationCross.gates.designEarth}${(c.incarnationCross.torNamen || []).length ? ` — ${c.incarnationCross.torNamen.join(' · ')}` : ''})${c.incarnationCross.deutung ? `\n DEUTUNGSMATERIAL ZUM KREUZ (Hintergrundquelle, deutsch): ${c.incarnationCross.deutung}\n Verwende dieses Material als Grundlage, uebernimm aber KEINEN Satz woertlich. Formuliere in der Ausgabesprache, in deiner eigenen warmen Sprache, und verknuepfe das Kreuz mit Typ, Autoritaet und Profil dieser Person.` : ''}
 
 VARIABLEN / PFEILE (Determination, Umgebung, Motivation, Perspektive): ${c.variablesShort}
 - Determination/Verdauung (links oben, ${v.digestion.arrow}-Pfeil)
@@ -2454,7 +2454,7 @@ AUSGABE-STRUKTUR (jede Sektion mit ~~~ abgetrennt, erste Zeile ist der Sektionst
 4. «Dein Profil ${c.profile}»: die beiden Linien, ihre Rollen, wie sie zusammenspielen, der Lebensbogen.
 5. «Deine Zentren»: zuerst die definierten (verlaessliche Energie), dann die offenen (wo die Person konditioniert wird, lernt und Weisheit entwickelt). Pro Zentrum konkret und lebensnah.
 6. «Deine Kanaele und Tore»: die definierten Kanaele als Lebensthemen, die wichtigsten Tore. Verstaendlich, nicht als Aufzaehlung.
-7. «Dein Inkarnationskreuz»: das groessere Lebensthema, getragen von den vier Sonnen- und Erd-Toren.
+7. «Dein Inkarnationskreuz»: nenne das Kreuz beim Namen (${c.incarnationCross.name || c.incarnationCross.notation}) und entfalte das groessere Lebensthema, getragen von den vier Sonnen- und Erd-Toren. Nutze das gelieferte Deutungsmaterial als Substanz, formuliere es aber vollstaendig neu und konkret auf diese Person bezogen. Ordne auch ein, was der Winkel bedeutet (persoenliches, fixiertes oder transpersonales Schicksal), ohne Fachjargon zu haeufen.
 8. «Deine Variablen»: Determination, Umgebung, Motivation und Perspektive als feine Hinweise zur Lebensfuehrung (kurz und zugaenglich halten).
 9. «Dein Gesundheitskompass» (energetische Lebensfuehrung, im Geist der typgerechten Vitalitaetsarbeit): leite aus Typ, Strategie, Autoritaet, definierten vs. offenen Zentren und der Determination Hinweise zu Energiehaushalt, Erholung, Ernaehrungs-Rhythmus und Stressmustern ab. Deute die OFFENEN Zentren als koerperlich-seelische Lernfelder (z.B. offene Wurzel: Druck und Hetze; offener Solarplexus: fremde Emotionen; offene Milz: Umgang mit Aengsten und Gesundheitssignalen). KEINE Diagnosen, KEINE Heilversprechen, keine konkreten Praeparate oder Dosierungen, keine Symptom-Tabellen. Beginne diese Sektion mit diesem Satz (in der Ausgabesprache): «${HD_DISCLAIMER_L10N[RLANG()]}»
 10. «Wie du dein Design lebst»: drei bis fuenf konkrete, ermutigende Schritte fuer den Alltag.
