@@ -116,6 +116,37 @@ Stattdessen: Karten-Essenz in numerologisch-persönliche Sprache übersetzen.
 Beispiel statt "Karte 14 Art = Alchemie":
 > "Deine Energie zeigt eine alchemistische Qualität. Du verbindest Gegensätze, was scheinbar nicht zusammengehört wird in deinem inneren Kessel zu etwas Neuem verschmolzen."
 
+### Jahresenergien-Tabelle: NUR die weiche Deutung im Report (Entscheid 24.08.2026)
+
+Konsistent mit der Intern-Regel: im Klienten-Report erscheinen **KEINE Karten-Namen** (kein «Der Tod», «Der Teufel» etc.) — die verängstigen Klientinnen. Die Jahresenergien-Tabelle zeigt pro Jahr nur **Zahl + weiche Deutung**, z.B. «13 · Transformation & Erneuerung».
+
+Die Crowley-Karten-Namen bleiben **interne Bedeutungsschicht** (`CROWLEY`-Objekt, kanonisch korrekt in Susanas Schreibweise) und dienen nur der Berechnung/Deutung im Hintergrund. Quellen in `pages/index.js`: Deutung aus `PJ_DEUTUNG` (im Report gezeigt), Karten-Name aus `CROWLEY` (intern). `pjLabel(num)` gibt NUR die Deutung zurück. Keine pythagoräischen Jahres-Wörter mehr. Auch die Glossar-Texte (de/en/pt) nennen KEINE Tarot-/Crowley-Begriffe.
+
+| # | Crowley-Original | Weiche Deutung |
+|---|------------------|----------------|
+| 0 | Der Narr | Neubeginn & Offenheit |
+| 1 | Der Magier | Gestaltungskraft & Initiative |
+| 2 | Die Hohepriesterin | Intuition & inneres Wissen |
+| 3 | Die Kaiserin | Entfaltung & Fülle |
+| 4 | Der Kaiser | Stabilität & Selbstführung |
+| 5 | Der Hohepriester | Werte & Orientierung |
+| 6 | Die Liebenden | Verbindung & bewusste Wahl |
+| 7 | Der Wagen | Aufbruch & Selbstbestimmung |
+| 8 | Ausgleichung | Balance & Klarheit |
+| 9 | Der Eremit | Innere Orientierung & Erkenntnis |
+| 10 | Das Glücksrad | Wandel & neue Möglichkeiten |
+| 11 | Lust | Lebenskraft & Leidenschaft |
+| 12 | Der Gehängte | Perspektivwechsel & Loslassen |
+| 13 | Der Tod | Transformation & Erneuerung |
+| 14 | Kunst | Integration & harmonische Verbindung |
+| 15 | Der Teufel | Lebenskraft & materielle Erfahrung |
+| 16 | Der Turm | Befreiung & grundlegender Wandel |
+| 17 | Der Stern | Hoffnung & Inspiration |
+| 18 | Der Mond | Intuition & innere Klärung |
+| 19 | Die Sonne | Lebensfreude & Entfaltung |
+| 20 | Das Aeon | Erwachen & Neuausrichtung |
+| 21 | Das Universum | Vollendung & Ganzheit |
+
 ### Wo Crowley angewendet wird
 
 - ✅ Lebenszahl (Block-Methode)
@@ -401,6 +432,10 @@ ANTHROPIC_API_KEY=sk-ant-api03-...
 ### Inkonsistente PJ-Berechnung
 **Problem:** Crowley-Bedeutungsschicht obendrauf, aber `calcPJ` rechnete noch alte pythagoräische Methode → falsche Zahlen
 **Lösung:** `lifeNum` und `calcPJ` komplett auf Block-Methode umgestellt
+
+### Jahresenergien-Tabelle vom Modell falsch reduziert (24.08.2026)
+**Problem:** Die 6-Jahres-Tabelle (Sektion 10) wurde NICHT aus `calcPJ` gebaut. Der Prompt wies das Modell an, die Jahre selbst hochzuzählen und «bei 10 auf 1» zu reduzieren (pythagoräisch, 1–9). Bei Paaren zeigte die Marker-Referenz zudem auf einen leeren PJ-Detail-Block. Ergebnis: 12/13/14/15 kamen als 3/4/5/6 raus (falsch). `calcPJ` selbst war korrekt (Block, ≤21, 22→4).
+**Lösung:** `buildJahresTabelleBlock()` in `pages/index.js` berechnet die 6 Jahre pro Mitglied deterministisch via `calcPJ` und injiziert eine fertige `[JAHRES-TABELLE]`/`[JAHR:…]` in den Prompt (Modell übernimmt 1:1). Modell-Extrapolation in Sektion 10 entfernt, Marker-Referenz auf die vorberechnete Tabelle gezeigt. Labels via `pjLabel` = NUR die weiche Deutung (`PJ_DEUTUNG`), z.B. «13 · Transformation & Erneuerung»; Crowley-Karten-Namen (`CROWLEY`) bleiben intern. Zusätzlich 7 Karten-Namen im `CROWLEY`-Objekt auf Susanas Schreibweise korrigiert (Magier, Kaiserin, Kaiser, Hohepriester, Ausgleichung, Der Tod, Das Aeon) und die «1 bis 9 / neunjährig»-Glossartexte (de/en/pt) auf die Crowley-Block-Methode umgeschrieben.
 
 ### DOCX-Tabellen falsch dargestellt
 **Problem:** Tabellen waren TAB-getrennter Text → unleserlich im Word

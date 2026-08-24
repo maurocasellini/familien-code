@@ -1203,26 +1203,26 @@ AHNENLINIE — was aus der Familie mitschwingt (optional eingegeben):${mLine}${f
     //   21 = Universe (nicht World)
     const CROWLEY = {
       0:  { name: 'Der Narr', en: 'The Fool', essence: 'Heiliger Sprung ins Unbekannte. Reine Möglichkeit. Vertrauen vor jeder Form.', light: 'Mut, Vertrauen, kindliche Offenheit, schöpferischer Ursprung, freier Geist', shadow: 'Naivität, Verantwortungsflucht, Beliebigkeit', astro: 'Uranus / Luft' },
-      1:  { name: 'Der Magus', en: 'The Magus', essence: 'Wille in die Welt übersetzt. Das Wort, das schöpft.', light: 'Klarer Wille, Sprachmacht, Vermittlung, Konzentration', shadow: 'Manipulation, Trickserei, Worte ohne Substanz', astro: 'Merkur' },
+      1:  { name: 'Der Magier', en: 'The Magus', essence: 'Wille in die Welt übersetzt. Das Wort, das schöpft.', light: 'Klarer Wille, Sprachmacht, Vermittlung, Konzentration', shadow: 'Manipulation, Trickserei, Worte ohne Substanz', astro: 'Merkur' },
       2:  { name: 'Die Hohepriesterin', en: 'The Priestess', essence: 'Der innere Mond. Wissen, das nicht durch Worte kommt.', light: 'Intuition, Empfänglichkeit, inneres Hören, Mysterium', shadow: 'Verschlossenheit, Abkapselung, Misstrauen', astro: 'Mond' },
-      3:  { name: 'Die Herrscherin', en: 'The Empress', essence: 'Schöpferische Fülle. Liebe als Form gebende Kraft.', light: 'Fruchtbarkeit, Schönheit, sinnliche Wärme, schöpferischer Überfluss', shadow: 'Übermass, Verstrickung in Genuss, übergriffige Fürsorge', astro: 'Venus' },
-      4:  { name: 'Der Herrscher', en: 'The Emperor', essence: 'Ordnung im Chaos. Strukturgebende Vater-Erfahrung.', light: 'Klare Grenzen, Verantwortung, innere Autorität, Stabilität', shadow: 'Tyrannei, Starrheit, Kontrolle aus Angst', astro: 'Widder' },
-      5:  { name: 'Der Hierophant', en: 'The Hierophant', essence: 'Brücke zwischen Himmel und Erde. Lehrer, der das Sakrale ins Alltägliche bringt.', light: 'Spirituelle Tradition, Weisheitsweitergabe, Initiation, das Heilige im Gewöhnlichen', shadow: 'Dogma, blinder Gehorsam, religiöse Erstarrung', astro: 'Stier' },
+      3:  { name: 'Die Kaiserin', en: 'The Empress', essence: 'Schöpferische Fülle. Liebe als Form gebende Kraft.', light: 'Fruchtbarkeit, Schönheit, sinnliche Wärme, schöpferischer Überfluss', shadow: 'Übermass, Verstrickung in Genuss, übergriffige Fürsorge', astro: 'Venus' },
+      4:  { name: 'Der Kaiser', en: 'The Emperor', essence: 'Ordnung im Chaos. Strukturgebende Vater-Erfahrung.', light: 'Klare Grenzen, Verantwortung, innere Autorität, Stabilität', shadow: 'Tyrannei, Starrheit, Kontrolle aus Angst', astro: 'Widder' },
+      5:  { name: 'Der Hohepriester', en: 'The Hierophant', essence: 'Brücke zwischen Himmel und Erde. Lehrer, der das Sakrale ins Alltägliche bringt.', light: 'Spirituelle Tradition, Weisheitsweitergabe, Initiation, das Heilige im Gewöhnlichen', shadow: 'Dogma, blinder Gehorsam, religiöse Erstarrung', astro: 'Stier' },
       6:  { name: 'Die Liebenden', en: 'The Lovers', essence: 'Entscheidung aus dem Herzen. Vereinigung der Gegensätze.', light: 'Tiefe Bindung, bewusste Wahl, Liebe als Erkenntnis', shadow: 'Unentschiedenheit, Verschmelzung, Selbstverlust', astro: 'Zwillinge' },
       7:  { name: 'Der Wagen', en: 'The Chariot', essence: 'Bewegtes Gleichgewicht. Der Heilige Gral als Gefäss.', light: 'Zielstrebigkeit, emotionale Stärke, schützender Panzer', shadow: 'Verbissenheit, emotionale Härte, Triebkraft ohne Richtung', astro: 'Krebs' },
-      8:  { name: 'Anpassung', en: 'Adjustment', essence: 'Karmisches Gleichgewicht. Wahrheit jenseits aller Wertung.', light: 'Fairness, klares Urteil, schwingendes Gleichgewicht', shadow: 'Selbstgerechtigkeit, kaltes Richten, Schwarz-Weiss-Denken', astro: 'Waage', note: 'Crowley: 8 = Adjustment (NICHT Strength). Crowley vertauschte 8 und 11 aus kabbalistischen Gründen.' },
+      8:  { name: 'Ausgleichung', en: 'Adjustment', essence: 'Karmisches Gleichgewicht. Wahrheit jenseits aller Wertung.', light: 'Fairness, klares Urteil, schwingendes Gleichgewicht', shadow: 'Selbstgerechtigkeit, kaltes Richten, Schwarz-Weiss-Denken', astro: 'Waage', note: 'Crowley: 8 = Adjustment (NICHT Strength). Crowley vertauschte 8 und 11 aus kabbalistischen Gründen.' },
       9:  { name: 'Der Eremit', en: 'The Hermit', essence: 'Inneres Licht in der Stille. Der Weise, der gegangen ist um zu sehen.', light: 'Innere Reise, Selbstkenntnis, Lampe für andere', shadow: 'Isolation, Weltflucht, sich verstecken', astro: 'Jungfrau' },
       10: { name: 'Das Glücksrad', en: 'Fortune', essence: 'Das ewige Drehen. Karma als Spirale.', light: 'Wandel, Schicksalsöffnung, Vertrauen in den Lauf', shadow: 'Schicksalsgläubigkeit als Ausrede, Passivität', astro: 'Jupiter' },
       11: { name: 'Lust', en: 'Lust', essence: 'Heilige Lebenskraft. Die Frau auf dem Löwen. Mut der Lebensbejahung.', light: 'Sinnliche Lebenslust, schöpferische Wildheit, Lebensjubel', shadow: 'Gier, Sucht, Lust als Flucht, Konsumzwang', astro: 'Löwe', note: 'Crowley: 11 = Lust (NICHT Justice). Crowley vertauschte 8 und 11 aus kabbalistischen Gründen.' },
       12: { name: 'Der Gehängte', en: 'The Hanged Man', essence: 'Umkehrung der Sicht. Initiation durch Stillstand.', light: 'Perspektivwechsel, Hingabe, geistige Initiation', shadow: 'Märtyrertum, Stillstand, Selbstmitleid', astro: 'Neptun / Wasser' },
-      13: { name: 'Tod', en: 'Death', essence: 'Transformation durch Loslassen. Wandlung jenseits der Form.', light: 'Tiefe Wandlung, Befreiung vom Überholten, neue Phase', shadow: 'Festhalten am Toten, Angst vor Wandel, Stagnation', astro: 'Skorpion', karmic: true },
+      13: { name: 'Der Tod', en: 'Death', essence: 'Transformation durch Loslassen. Wandlung jenseits der Form.', light: 'Tiefe Wandlung, Befreiung vom Überholten, neue Phase', shadow: 'Festhalten am Toten, Angst vor Wandel, Stagnation', astro: 'Skorpion', karmic: true },
       14: { name: 'Kunst', en: 'Art', essence: 'Alchemie der Gegensätze. Im Kessel werden Feuer und Wasser zur dritten Substanz.', light: 'Integration, richtige Mischung, Synthese, schöpferische Verbindung', shadow: 'Lauwarme Mitte, übermässige Vermittlung, Konfliktvermeidung', astro: 'Schütze', note: 'Crowley: 14 = Art (NICHT Temperance). Bei Crowley kraftvoll alchemistisch.', karmic: true },
       15: { name: 'Der Teufel', en: 'The Devil', essence: 'Schöpferische Kraft in Materie gebunden. Das Lachen des Pan.', light: 'Verkörperung, schöpferische Materie, Sinnlichkeit, Humor', shadow: 'Materialismus, Sucht, Schatten-Verstrickung', astro: 'Steinbock' },
       16: { name: 'Der Turm', en: 'The Tower', essence: 'Blitzschlag in falsche Strukturen. Plötzliche Wahrheit.', light: 'Befreiung durch Zusammenbruch, Wahrheit die Lügen zerstört', shadow: 'Zerstörerische Wut, Trauma, plötzlicher Verlust', astro: 'Mars', karmic: true },
       17: { name: 'Der Stern', en: 'The Star', essence: 'Heilige Hoffnung. Wasser des Lebens. Göttin Nuit.', light: 'Hoffnung, Erneuerung, Vertrauen, kosmische Inspiration', shadow: 'Realitätsflucht in Hoffnungsbilder, schwammige Visionen', astro: 'Wassermann' },
       18: { name: 'Der Mond', en: 'The Moon', essence: 'Der Weg durch die Nacht. Das Unbewusste, die Tiefe der Seele.', light: 'Traumweisheit, intuitive Tiefen, Schatten-Konfrontation', shadow: 'Verwirrung, Täuschung, Verlorenheit, Depression', astro: 'Fische' },
       19: { name: 'Die Sonne', en: 'The Sun', essence: 'Strahlendes Bewusstsein. Das Kind, das die Welt mit klaren Augen sieht.', light: 'Freude, Klarheit, Lebenslust, schöpferische Frische', shadow: 'Naivität, fehlende Tiefe, oberflächliche Heiterkeit', astro: 'Sonne', karmic: true },
-      20: { name: 'Das Äon', en: 'The Aeon', essence: 'Neues Zeitalter. Krönung des Horus. Wiedergeburt in Verantwortung.', light: 'Geistige Wiedergeburt, finale Initiation, kosmische Verantwortung', shadow: 'Apokalyptisches Denken, Endzeit-Drama', astro: 'Pluto / Feuer', note: 'Crowley: 20 = The Aeon (NICHT Judgement). Nicht Gericht, sondern Neuzeitalter (Horus).' },
+      20: { name: 'Das Aeon', en: 'The Aeon', essence: 'Neues Zeitalter. Krönung des Horus. Wiedergeburt in Verantwortung.', light: 'Geistige Wiedergeburt, finale Initiation, kosmische Verantwortung', shadow: 'Apokalyptisches Denken, Endzeit-Drama', astro: 'Pluto / Feuer', note: 'Crowley: 20 = The Aeon (NICHT Judgement). Nicht Gericht, sondern Neuzeitalter (Horus).' },
       21: { name: 'Das Universum', en: 'The Universe', essence: 'Vollendung. Die tanzende Göttin. Ganzheit jenseits aller Polaritäten.', light: 'Vollendung, kosmische Erfüllung, integrierte Ganzheit', shadow: 'Stillstand nach Erfüllung, Saturn-Schwere', astro: 'Saturn', note: 'Crowley: 21 = The Universe (NICHT The World). Umfassender — Saturn als Schwellenhüter.' },
     };
 
@@ -2155,6 +2155,46 @@ Keep every structural marker EXACTLY as written: [ZAHL:…], [PERSON-CARD:…], 
       const pj2Block = '';
       const pjKidsBlocks = '';
 
+      // ── JAHRESENERGIEN: 6 Jahre deterministisch vorberechnen ──────────
+      // Crowley-Block-Methode via calcPJ (Tag + Monat + volles Jahr, tarotReduce ≤21, 22→4).
+      // Ersetzt die frühere Modell-Extrapolation, die fälschlich auf 1–9 reduzierte.
+      // Label im Report = NUR die weiche Deutung (PJ_DEUTUNG). Crowley-Karten-Namen (CROWLEY) bleiben
+      // interne Bedeutungsschicht und erscheinen NICHT im Klienten-Report (Susanas Regel).
+      const PJ_DEUTUNG = {
+        0: 'Neubeginn & Offenheit', 1: 'Gestaltungskraft & Initiative', 2: 'Intuition & inneres Wissen',
+        3: 'Entfaltung & Fülle', 4: 'Stabilität & Selbstführung', 5: 'Werte & Orientierung',
+        6: 'Verbindung & bewusste Wahl', 7: 'Aufbruch & Selbstbestimmung', 8: 'Balance & Klarheit',
+        9: 'Innere Orientierung & Erkenntnis', 10: 'Wandel & neue Möglichkeiten', 11: 'Lebenskraft & Leidenschaft',
+        12: 'Perspektivwechsel & Loslassen', 13: 'Transformation & Erneuerung', 14: 'Integration & harmonische Verbindung',
+        15: 'Lebenskraft & materielle Erfahrung', 16: 'Befreiung & grundlegender Wandel', 17: 'Hoffnung & Inspiration',
+        18: 'Intuition & innere Klärung', 19: 'Lebensfreude & Entfaltung', 20: 'Erwachen & Neuausrichtung',
+        21: 'Vollendung & Ganzheit',
+      };
+      const pjLabel = (num) => PJ_DEUTUNG[num] || (CROWLEY[num] ? CROWLEY[num].name : String(num));
+      function buildJahresTabelleBlock() {
+        const members = [
+          { name: p1.firstName, birthDate: p1.birthDate },
+          ...(hasPair && p2 ? [{ name: p2.firstName, birthDate: p2.birthDate }] : []),
+          ...(hasKids ? getChildren().map(c => ({ name: c.firstName, birthDate: c.birthDate })) : []),
+        ].filter(m => m.name && m.birthDate);
+        const infos = members
+          .map(m => ({ name: m.name, info: getPersonalYearInfo(m.birthDate) }))
+          .filter(x => x.info);
+        if (!infos.length) return '';
+        const anchor = infos[0].info.startYear;
+        const rows = [];
+        for (let i = 0; i < 6; i++) {
+          const y = anchor + i;
+          const cells = infos.map(({ info }) => {
+            const num = calcPJ(info.birthDay, info.birthMonth, y);
+            return `${num} · ${pjLabel(num)}`;
+          });
+          rows.push(`[JAHR:${y} bis ${y + 1}|${cells.join('|')}]`);
+        }
+        return `[JAHRES-TABELLE:${infos.map(x => x.name).join('|')}]\n${rows.join('\n')}`;
+      }
+      const jahresTabelleBlock = buildJahresTabelleBlock();
+
       // Erweiterte Numerologie-Blöcke (A, B, D, E, F + C-Hinweis für Astrologie)
       const ext1Block = extendedNumerologyBlock(p1, 'PERSON 1');
       const ext2Block = hasPair && p2 ? extendedNumerologyBlock(p2, 'PERSON 2') : '';
@@ -2614,7 +2654,7 @@ Für 2-spaltige Info-Karten: [KARTEN-GRID-START] ... [KARTE:Eyebrow|Titel|Untert
 Für Beziehungs-Dynamik: [DYNAMIK:SIE-Label|SIE-Zahl|ER-Label|ER-Zahl|Resonanz-Text]
 Für astrologische Verbindungen als Karten: [ASTRO-START] ... [ASTRO:Symbol|Titel|Text] ... [ASTRO-END]
 Für Herausforderung & Schlüssel 2-spaltig: [HS-START] ... [HERAUSFORDERUNG:Text] ... [SCHLUESSEL:Text] ... [HS-END]
-Für Jahresenergien-Tabelle: Nur so viele Spalten wie tatsächlich Personen vorhanden sind. Verwende: [JAHRES-TABELLE:${[p1.firstName, hasPair && p2?.firstName, ...(hasKids ? getChildren().map(c => c.firstName) : [])].filter(Boolean).join('|')}] gefolgt von Zeilen: [JAHR:Jahr-Bereich|Zahl·Keyword${hasPair ? '|Zahl·Keyword' : ''}${hasKids ? getChildren().map(() => '|Zahl·Keyword').join('') : ''}]. Verwende die ECHTEN, vorberechneten PJ-Werte aus dem PERSOENLICHES JAHR IM DETAIL-Block oben (nicht halluzinieren). Jahr-Bereich-Format: gib den Geburtstag-zu-Geburtstag Zeitraum an, z.B. "11/2025 bis 11/2026" statt "2025". Liste 6 Jahre auf, beginnend mit dem aktuell aktiven PJ.
+Für Jahresenergien-Tabelle: Nur so viele Spalten wie tatsächlich Personen vorhanden sind. Verwende: [JAHRES-TABELLE:${[p1.firstName, hasPair && p2?.firstName, ...(hasKids ? getChildren().map(c => c.firstName) : [])].filter(Boolean).join('|')}] gefolgt von Zeilen: [JAHR:Jahr-Bereich|Zahl·Keyword${hasPair ? '|Zahl·Keyword' : ''}${hasKids ? getChildren().map(() => '|Zahl·Keyword').join('') : ''}]. Verwende die ECHTEN, im Code vorberechneten Werte aus der Jahresenergien-Tabelle in Sektion 10 (nicht halluzinieren, nicht selbst reduzieren). Liste 6 Jahre auf, beginnend mit dem aktuell aktiven PJ.
 Für Pinnacles: [PINNACLE:Person|Nummer|Zeitraum|Zahl|Beschreibung|Challenge]. Im Zeitraum-Feld IMMER zwei Formate kombinieren: "0 bis 26 Jahre (1987 bis 2013)" oder "ab 36 Jahre (ab 2023)" oder "27 bis 35 Jahre (2014 bis 2022)". Berechne die Jahreszahlen exakt aus dem Geburtsjahr der Person + Alter.
 Für Namen-Numerologie Cards: [NAMEN-GRID-START] ... [NAMEN-CARD:Name|Rolle|Seelendrang-Zahl|Seelendrang-Label|Pers-Zahl|Pers-Label|Ausdruck-Zahl|Ausdruck-Label|Beschreibung] ... [NAMEN-GRID-END]
 PFLICHTREGELN für NAMEN-CARD:
@@ -2655,7 +2695,7 @@ ${multiPerson ? '' : `8. Aktuelles Persönliches Jahr im Detail${hasPair ? `. WI
 
 9. Nächstes Persönliches Jahr${hasPair ? ` — separat für ${p1.firstName || 'Person 1'} und ${p2?.firstName || 'Person 2'}` : ''}, mindestens ${hasPair ? '1200 Wörter (600 pro Person)' : '600 Wörter'}, mit [PJ-HEADER:Nächstes Persönliches Jahr von [Name]|PJ-Zahl|Startdatum bis Enddatum] und substanzieller Beschreibung des Hauptthemas, des Wechsel-Charakters und der konkreten Änderungen.`}
 
-10. Jahresenergien-Tabelle über 6 Jahre, mit [JAHRES-TABELLE:...] und [JAHR:...] Zeilen, geburtstagsbasiert (Format "11/2025 bis 11/2026").${multiPerson ? ` Eine gemeinsame Tabelle mit einer SPALTE pro Mitglied (${memberNamesStr}). Einleitung kompakt halten (ca. 120 Wörter), die aktuell aktive Persönliche-Jahr-Zahl jeder Person steht in deren Personendaten (Feld «Persönliches Jahr (aktuell aktiv)»); die weiteren fünf Jahre leitest du daraus deterministisch ab (jeweils +1, bei 10 auf 1 reduziert, Meisterzahlen 11/22 wo passend stehen lassen). Bezugspunkt ist das Analysedatum. Der Erklärungs-Absatz erwähnt kurz resonante und divergente Jahre der Personen.` : ' Kurze einleitende Erklärung erlaubt (200 Wörter), dann die Tabelle.'}
+10. Jahresenergien-Tabelle über 6 Jahre, geburtstagsbasiert.${multiPerson ? ` Eine gemeinsame Tabelle mit einer SPALTE pro Mitglied (${memberNamesStr}).` : ''} Gib zuerst einen kompakten Einleitungs-Absatz (${multiPerson ? 'ca. 120' : 'ca. 200'} Wörter${multiPerson ? `, erwähnt kurz resonante und divergente Jahre von ${memberNamesStr}` : ''}). PFLICHT: Danach die folgende, im Code vorberechnete Tabelle EXAKT und unverändert 1:1 ausgeben — Zahlen und Labels weder neu berechnen noch reduzieren noch umbenennen, keine Zeile hinzufügen oder weglassen:\n${jahresTabelleBlock}
 
 ${multiPerson ? '' : `11. Pinnacles & Challenges${hasPair ? ` — separate Sub-Abschnitte für ${p1.firstName || 'Person 1'} und ${p2?.firstName || 'Person 2'}` : ''}, mindestens ${hasPair ? '2400 Wörter (1200 pro Person)' : '1500 Wörter'}. Verwende [PINNACLE:Person|Nummer|Zeitraum|Zahl|Beschreibung|Challenge] für jeden der 4 Pinnacles pro Person. Zeitraum-Feld IMMER mit Alter UND Jahreszahlen, z.B. "0 bis 26 Jahre (1987 bis 2013)". Verwende die berechneten Pinnacle-Werte aus dem ERWEITERTE NUMEROLOGIE-DATEN-Block oben. Identifiziere welcher Pinnacle aktuell aktiv ist und ob bald ein Wechsel ansteht. Für den AKTUELL AKTIVEN Pinnacle: zwei separate Absätze, einer zur Energie, einer zur Challenge.`}
 
@@ -3426,8 +3466,8 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       'Die Kinder': 'Jedes Kind bringt seine eigene numerologische und astrologische Signatur mit. Die Analyse zeigt, welche Energien das Kind trägt, wie es sich im Familiensystem positioniert und welche Verbindungen zu den Eltern bestehen.',
       'Das Familiensystem': 'Das Familiensystem betrachtet die Familie als energetisches Ganzes — welche Zahlen und Qualitäten dominieren, welche fehlen, wie die einzelnen Mitglieder sich gegenseitig spiegeln und ergänzen. Muster wiederholen sich oft über Generationen.',
       'Herausforderung & Schlüssel': 'Jede Lebenszahl bringt spezifische Herausforderungen mit — wiederkehrende Themen, die das Leben immer wieder aufwirft. Der Schlüssel ist der bewusste Umgang damit: nicht Widerstand, sondern Integration. Herausforderungen sind keine Schwächen, sondern Wachstumsfelder.',
-      'Jahresenergien': 'Das Persönliche Jahr wird errechnet aus Geburtstag + Geburtsmonat + aktuellem Kalenderjahr. Es beschreibt, unter welchem energetischen Thema ein Jahr steht — von 1 (Neubeginn) bis 9 (Abschluss). Die neunjährigen Zyklen wiederholen sich lebenslang.',
-      'Deine Deine Jahresenergien — Vorausschau': 'Das Persönliche Jahr wird errechnet aus Geburtstag + Geburtsmonat + aktuellem Kalenderjahr. Es beschreibt, unter welchem energetischen Thema ein Jahr steht — von 1 (Neubeginn) bis 9 (Abschluss). Die neunjährigen Zyklen wiederholen sich lebenslang.',
+      'Jahresenergien': 'Das Persönliche Jahr wird aus Geburtstag + Geburtsmonat + Kalenderjahr berechnet und beschreibt die Grundstimmung, unter der ein Jahr steht. Es bewegt sich von Geburtstag zu Geburtstag weiter.',
+      'Deine Deine Jahresenergien — Vorausschau': 'Das Persönliche Jahr wird aus Geburtstag + Geburtsmonat + Kalenderjahr berechnet und beschreibt die Grundstimmung, unter der ein Jahr steht. Es bewegt sich von Geburtstag zu Geburtstag weiter.',
       'Pinnacles & Challenges': 'Pinnacles sind längere Lebenszyklen (ca. 7–27 Jahre), die bestimmte Qualitäten in den Vordergrund bringen. Sie werden aus Geburtstag, -monat und -jahr errechnet. Challenges sind die spezifischen Lernthemen innerhalb jedes Pinnacles — die Reibungspunkte, die bewusste Entwicklung verlangen.',
       'Namen-Numerologie': 'Eine detaillierte Aufschlüsselung der Namen-Energie aller Familienmitglieder. Seelendrang, Persönlichkeit und Ausdruck zusammen zeigen, wie inneres Verlangen, äussere Wirkung und Gesamtpotenzial zueinander stehen — und wie die Mitglieder sich numerologisch spiegeln.',
       'Die Essenz': 'Ein einziger Satz, der das Wesen dieser Analyse zusammenfasst — die verdichtete Quintessenz aller Zahlen, Zeichen und Verbindungen.',
