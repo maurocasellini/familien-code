@@ -16,6 +16,7 @@ import { DateTime } from 'luxon';
 import { buildChart, norm360 } from '../../lib/humandesign';
 import { getEphemeris, SE, MOSEPH_SPEED } from '../../lib/ephemeris';
 import { geocodePlace } from '../../lib/geocode';
+import { normalizeTime } from '../../lib/timeparse';
 
 export const config = { maxDuration: 30 };
 
@@ -91,7 +92,14 @@ export default async function handler(req, res) {
     let Y, M, D;
     if (birthDate.includes('.')) { const [d, m, y] = birthDate.split('.').map(Number); Y = y; M = m; D = d; }
     else { const [y, m, d] = birthDate.split('-').map(Number); Y = y; M = m; D = d; }
-    const [h, mi] = birthTime.split(':').map(Number);
+    const _t = normalizeTime(birthTime);
+    if (!_t) {
+      return res.status(200).json({
+        available: false,
+        reason: `Die Geburtszeit «${String(birthTime).trim()}» konnte nicht gelesen werden. Bitte im Format HH:MM angeben, z.B. 05:40.`,
+      });
+    }
+    const h = _t.hour, mi = _t.minute;
     const local = DateTime.fromObject({ year: Y, month: M, day: D, hour: h, minute: mi || 0 }, { zone });
     if (!local.isValid) return res.status(200).json({ available: false, reason: 'Ungueltige Datums-/Zeitangabe: ' + local.invalidReason });
     const utc = local.toUTC();

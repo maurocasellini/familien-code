@@ -15,6 +15,7 @@ import { DateTime } from 'luxon';
 import { buildChart, norm360 } from '../../lib/humandesign';
 import { connectionChart } from '../../lib/connectionChart';
 import { getEphemeris, SE, MOSEPH_SPEED } from '../../lib/ephemeris';
+import { normalizeTime } from '../../lib/timeparse';
 
 export const config = { maxDuration: 30 };
 
@@ -85,7 +86,9 @@ async function computeOne(eph, { birthDate, birthTime, birthPlace, lat, lon: lon
   let Y, M, D;
   if (birthDate.includes('.')) { const [d, m, y] = birthDate.split('.').map(Number); Y = y; M = m; D = d; }
   else { const [y, m, d] = birthDate.split('-').map(Number); Y = y; M = m; D = d; }
-  const [h, mi] = birthTime.split(':').map(Number);
+  const _t = normalizeTime(birthTime);
+  if (!_t) return { available: false, reason: `Geburtszeit «${String(birthTime).trim()}» nicht lesbar — bitte im Format HH:MM angeben (z.B. 05:40).` };
+  const h = _t.hour, mi = _t.minute;
   const local = DateTime.fromObject({ year: Y, month: M, day: D, hour: h, minute: mi || 0 }, { zone });
   if (!local.isValid) return { available: false, reason: 'Ungueltige Datums-/Zeitangabe: ' + local.invalidReason };
   const utc = local.toUTC();

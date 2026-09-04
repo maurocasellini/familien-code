@@ -13,6 +13,7 @@
 
 import { getEphemeris, SE } from '../../lib/ephemeris';
 import { geocodePlace } from '../../lib/geocode';
+import { normalizeTime } from '../../lib/timeparse';
 
 export const config = { maxDuration: 30 };
 
@@ -81,14 +82,19 @@ export default async function handler(req, res) {
   const year = parseInt(dp[2], 10);
   if (!day || !month || !year) return res.status(400).json({ error: 'Invalid date numbers' });
 
-  // Parse time, default to noon if not given
+  // Parse time (tolerant: 05:40, 05.40, 0540, 5h40, 5:40 PM ...), sonst Mittag als Notbehelf.
+  // WICHTIG: timeRejected unterscheidet "keine Zeit angegeben" von "Zeit angegeben, aber unlesbar".
   let hour = 12, minute = 0;
   let timeKnown = false;
-  if (birthTime && /^\d{1,2}:\d{2}/.test(birthTime)) {
-    const tp = birthTime.match(/^(\d{1,2}):(\d{2})/);
-    hour = parseInt(tp[1], 10);
-    minute = parseInt(tp[2], 10);
+  let timeRejected = null;
+  const rawTime = (birthTime === null || birthTime === undefined) ? '' : String(birthTime).trim();
+  const parsedTime = normalizeTime(rawTime);
+  if (parsedTime) {
+    hour = parsedTime.hour;
+    minute = parsedTime.minute;
     timeKnown = true;
+  } else if (rawTime && !/^(unbekannt|unknown|desconhecid[ao])$/i.test(rawTime)) {
+    timeRejected = rawTime;
   }
 
   // Ephemeride laden (WASM, keine native Kompilierung noetig)
@@ -154,12 +160,14 @@ export default async function handler(req, res) {
     return res.status(200).json({
       available: true,
       timeKnown,
+      timeUsed: timeKnown ? `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}` : '12:00 (Notbehelf, Geburtszeit fehlt)',
+      timeRejected,
       coordsKnown: !!coords,
       coords: coords ? { lat: coords.lat, lon: coords.lon, display: coords.display } : null,
       timezone: { name: utc.tzName, offsetHours: utc.offsetHours, method: utc.method },
       planets: {
         sun: { ...sun, formatted: fmtPos(sun) },
-        moon: { ...moon, formatted: fmtPos(moon) },
+        moon: { ...moon, formatted: fmtPos(moon), uncertain: !timeKnown },
         mercury: { ...mercury, formatted: fmtPos(mercury) },
         venus: { ...venus, formatted: fmtPos(venus) },
         mars: { ...mars, formatted: fmtPos(mars) },
@@ -176,8 +184,11 @@ export default async function handler(req, res) {
       },
       ascendant: houses?.ascendant ? { ...houses.ascendant, formatted: fmtPos(houses.ascendant) } : null,
       mc: houses?.mc ? { ...houses.mc, formatted: fmtPos(houses.mc) } : null,
-      note: (!timeKnown ? 'Geburtszeit unbekannt — Aszendent nicht berechenbar, Mondposition mit ggf. Unsicherheit (ca. 13°/Tag). '
-            : (!coords ? 'Geburtsort nicht eindeutig — Aszendent nicht berechenbar. ' : '')) + tzNote,
+      note: (timeRejected
+              ? `ACHTUNG: Die eingegebene Geburtszeit «${timeRejected}» konnte nicht gelesen werden (erwartet HH:MM). Es wurde ersatzweise 12:00 Uhr gerechnet. Aszendent nicht berechenbar, und die MONDPOSITION IST UNZUVERLAESSIG (der Mond laeuft ca. 13°/Tag, das Zeichen kann falsch sein). `
+              : (!timeKnown
+                  ? 'Geburtszeit unbekannt — es wurde ersatzweise 12:00 Uhr gerechnet. Aszendent nicht berechenbar, und die MONDPOSITION IST UNZUVERLAESSIG (ca. 13°/Tag, das Zeichen kann falsch sein). '
+                  : (!coords ? 'Geburtsort nicht eindeutig — Aszendent nicht berechenbar. ' : ''))) + tzNote,
     });
   } catch (err) {
     console.error('Astro calc error:', err);

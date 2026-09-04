@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import { useEffect } from 'react'
 import { getReport, artStufeEntfaellt } from '../lib/registry'
+import { normalizeTimeString } from '../lib/timeparse'
 
 export default function Home() {
   useEffect(() => {
@@ -974,7 +975,11 @@ Formuliere Kernaussagen deshalb aus dem AKTUELLEN Namen. Ziehe den Geburtsnamen 
       if (!input || !box) return;
       const on = box.classList.toggle('on');
       input.disabled = on;
-      if (on) input.value = '';
+      if (on) {
+        input.value = '';
+        const chk = input.parentNode && input.parentNode.querySelector('.time-check');
+        if (chk) { chk.className = 'time-check'; chk.innerHTML = ''; }
+      }
     }
 
     // ── FORMS ──────────────────────────────────────────────────────
@@ -1112,7 +1117,7 @@ Formuliere Kernaussagen deshalb aus dem AKTUELLEN Namen. Ziehe den Geburtsnamen 
         rufname: val(`${prefix}-rufname`),
         birthName: val(`${prefix}-birthname`),
         birthDate: val(`${prefix}-birthdate`),
-        birthTime: isOn(`${prefix}-notime`) ? 'unbekannt' : (val(`${prefix}-birthtime`) || 'unbekannt'),
+        birthTime: isOn(`${prefix}-notime`) ? 'unbekannt' : normalizeTimeString(val(`${prefix}-birthtime`), 'unbekannt'),
         birthPlace: val(`${prefix}-birthplace`)
       };
     }
@@ -2211,7 +2216,7 @@ Keep every structural marker EXACTLY as written: [ZAHL:…], [PERSON-CARD:…], 
         let s = `\nPROFI-ASTROLOGIE (Swiss Ephemeris) — ${label}:`;
         if (data.coords) s += `\n- Geburtsort geocodiert: ${data.coords.display} (${data.coords.lat.toFixed(2)}, ${data.coords.lon.toFixed(2)})`;
         s += `\n- Sonne: ${p.sun?.formatted}`;
-        s += `\n- Mond: ${p.moon?.formatted}`;
+        s += `\n- Mond: ${p.moon?.formatted}${data.timeKnown === false ? '  ← UNSICHER: ohne gueltige Geburtszeit auf 12:00 Uhr gerechnet. Der Mond laeuft ca. 13°/Tag, das ZEICHEN kann falsch sein. Mondzeichen NICHT als Tatsache deuten, sondern nur kurz als unsicher erwaehnen.' : ''}`;
         s += `\n- Merkur: ${p.mercury?.formatted}`;
         s += `\n- Venus: ${p.venus?.formatted}`;
         s += `\n- Mars: ${p.mars?.formatted}`;
@@ -2224,7 +2229,7 @@ Keep every structural marker EXACTLY as written: [ZAHL:…], [PERSON-CARD:…], 
         s += `\n- Nordknoten: ${n.north?.formatted}`;
         s += `\n- Südknoten: ${n.south?.formatted}`;
         if (asc) s += `\n- Aszendent: ${asc.formatted}`;
-        else s += `\n- Aszendent: nicht berechnet (Geburtszeit oder Geburtsort fehlt)`;
+        else s += `\n- Aszendent: nicht berechnet (Geburtszeit oder Geburtsort fehlt)${data.timeRejected ? ` — eingegebene Zeit «${data.timeRejected}» war nicht lesbar` : ''}`;
         if (mc) s += `\n- MC (Medium Coeli): ${mc.formatted}`;
         if (data.note) s += `\n- HINWEIS: ${data.note}`;
         return s;
@@ -3715,12 +3720,52 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
       setPlaceStatus(input, 'ok', `✓ ${esc(data.display)}${tz}${approx}`);
     }
 
+    // ── LIVE-ZEIT-PRUEFER ──────────────────────────────────────────
+    // Zeigt unter jedem Geburtszeit-Feld an, wie das System die Eingabe liest.
+    // Hintergrund: «05.40» (Punkt) wurde frueher still verworfen und auf 12:00
+    // Uhr zurueckgefallen — Mond und Aszendent waren dadurch falsch. Jetzt wird
+    // tolerant geparst UND sichtbar zurueckgemeldet.
+    const TIME_FIELD = (el) => el && el.tagName === 'INPUT' && /-birthtime$/.test(el.id);
+    const timeTimers = {};
+
+    function timeStatusEl(input) {
+      let box = input.parentNode.querySelector('.time-check');
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'time-check';
+        input.insertAdjacentElement('afterend', box);
+      }
+      return box;
+    }
+    function setTimeStatus(input, cls, html) {
+      const box = timeStatusEl(input);
+      box.className = 'time-check' + (cls ? ' ' + cls : '');
+      box.innerHTML = html || '';
+    }
+    function checkTime(input) {
+      const raw = (input.value || '').trim();
+      if (!raw) { setTimeStatus(input, '', ''); return; }
+      const t = normalizeTimeString(raw, '');
+      if (t) setTimeStatus(input, 'ok', `\u2713 gelesen als <strong>${t}</strong> Uhr`);
+      else setTimeStatus(input, 'bad', '\u2717 Zeit nicht lesbar \u2014 bitte als HH:MM angeben, z.B. 05:40. Ohne g\u00fcltige Zeit werden Mond und Aszendent unzuverl\u00e4ssig.');
+    }
+
+    document.addEventListener('blur', (e) => {
+      if (TIME_FIELD(e.target)) { clearTimeout(timeTimers[e.target.id]); checkTime(e.target); }
+    }, true);
+
     document.addEventListener('input', (e) => {
       if (PLACE_FIELD(e.target)) {
         const input = e.target;
         clearTimeout(placeTimers[input.id]);
         if (!input.value.trim()) { setPlaceStatus(input, '', ''); return; }
         placeTimers[input.id] = setTimeout(() => checkPlace(input), 650);
+      }
+      if (TIME_FIELD(e.target)) {
+        const input = e.target;
+        clearTimeout(timeTimers[input.id]);
+        if (!input.value.trim()) { setTimeStatus(input, '', ''); return; }
+        timeTimers[input.id] = setTimeout(() => checkTime(input), 400);
       }
       if (e.target.id === 'lead-name' || e.target.id === 'lead-email') validateLead();
       if (e.target.id === 'p1-kundennummer') knManual = true;
@@ -4203,6 +4248,17 @@ EXTREM WICHTIG: Sei grosszügig mit Länge und Tiefe. Diese Analyse wird für CH
             animation: pcPulse 0.9s ease-in-out infinite;
           }
           @keyframes pcPulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+          /* ── LIVE-ZEIT-PRUEFER ───────────────────────────────────── */
+          .time-check {
+            font-size: 11px; line-height: 1.5; letter-spacing: 0.2px;
+            margin-top: 8px; font-style: normal;
+            transition: color 0.2s; word-break: break-word;
+          }
+          .time-check:empty { display: none; }
+          .time-check.ok { color: #4f7a52; }
+          .time-check.bad { color: var(--rose); }
+          .time-check strong { font-weight: 600; }
 
           /* ── AHNENLINIE ──────────────────────────────────────────── */
           .ancestor-block {
