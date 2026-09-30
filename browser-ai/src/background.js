@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const DEFAULTS = {
   apiKey: "",
-  model: "claude-opus-5-5",
+  model: "claude-sonnet-5-5",
   trigger: "shortcut",
   webSearch: false,
   language: "de",
@@ -104,7 +104,7 @@ async function runQuery(port, msg) {
     return;
   }
 
-  const info = MODEL_INFO[settings.model] ?? MODEL_INFO["claude-opus-5-5"];
+  const info = MODEL_INFO[settings.model] ?? MODEL_INFO["claude-sonnet-5-5"];
   const client = new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
 
   // Neue Unterhaltung: Wissensbasis vor die erste Frage hängen. Das Content-Script
@@ -323,6 +323,12 @@ async function injectIntoOpenTabs() {
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   injectIntoOpenTabs();
   chrome.storage.local.remove("autoCopy"); // automatisches Kopieren gibt es nicht mehr
+  // Einmalig: Standardmodell ist jetzt Sonnet 5.5 (auch wenn vorher Opus gespeichert war)
+  const { model, modelMigrated } = await chrome.storage.local.get(["model", "modelMigrated"]);
+  if (!modelMigrated) {
+    if (model === "claude-opus-5-5") await chrome.storage.local.set({ model: "claude-sonnet-5-5" });
+    await chrome.storage.local.set({ modelMigrated: true });
+  }
   const { apiKey } = await chrome.storage.local.get("apiKey");
   if (reason === "install" && !apiKey) chrome.runtime.openOptionsPage();
 });

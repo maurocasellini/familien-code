@@ -33,7 +33,7 @@ Alternativ einzelne Dateien hochladen: **PDF, PPTX, DOCX, TXT, MD, CSV**. Jede n
 
 ## Einstellungen
 
-- **Modell:** Claude Opus 5.5 (Standard, beste Qualität), Sonnet 5.5, Haiku 4.5 (am schnellsten/günstigsten).
+- **Modell:** Claude Sonnet 5.5 (Standard, schnell und günstig), Opus 5.5 (gründlicher, doppelt so teuer), Haiku 4.5 (am günstigsten).
 - **Antwortsprache:** Deutsch (Deutschland, Standard) / wie die Frage / Englisch.
 - **Auslöser** (⌃C, ⌘C oder nur markieren), **Mindestlänge** der Markierung, **Websuche** (Standard aus), **Ecken-Verzögerung**.
 
@@ -41,7 +41,7 @@ Alternativ einzelne Dateien hochladen: **PDF, PPTX, DOCX, TXT, MD, CSV**. Jede n
 
 - Manifest V3. Content-Script (`extension/content.js`) rendert das Panel in einem Shadow-DOM – kein CSS-Konflikt mit Webseiten, helles/dunkles Design automatisch.
 - Der Service-Worker (`src/background.js`) spricht über das offizielle `@anthropic-ai/sdk` mit der Claude API und streamt die Antwort per Port zurück. Der API-Key bleibt im Extension-Speicher und wird von Webseiten nie gesehen.
-- Opus/Sonnet laufen mit `effort: "low"` für schnelle Antworten und mit aktiviertem Server-Fallback (`fallbacks: "default"`), damit eine fälschlich abgelehnte Anfrage automatisch auf einem anderen Modell weiterläuft.
+- Sonnet/Opus laufen mit `effort: "low"` für schnelle Antworten und mit aktiviertem Server-Fallback (`fallbacks: "default"`), damit eine fälschlich abgelehnte Anfrage automatisch auf einem anderen Modell weiterläuft.
 - Nichts wird gespeichert oder mitgeloggt; der Gesprächsverlauf lebt nur im jeweiligen Tab.
 
 ### Entwickeln

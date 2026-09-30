@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const DEFAULTS = {
   apiKey: "",
-  model: "claude-opus-5-5",
+  model: "claude-sonnet-5-5",
   trigger: "shortcut",
   webSearch: false,
   language: "de",
