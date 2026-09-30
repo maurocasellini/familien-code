@@ -5,7 +5,7 @@ Browser-Erweiterung (Chrome, Edge, Brave, Arc – alle Chromium-Browser). Die KI
 | Aktion | Was passiert |
 |---|---|
 | **Text markieren + ⌃C** (Control, nicht ⌘) | Frage geht still im Hintergrund an die KI, kein Fenster springt auf. Das Icon zeigt „…“ solange sie arbeitet und ✓ wenn die Antwort fertig ist (rotes ! bei Fehlern, Details im Panel). Funktioniert auch in Eingabefeldern und iframes. |
-| **⌃V** | Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, wird sie eingefügt, sobald sie fertig ist. Ist kein Textfeld aktiv, passiert nichts (grauer ? am Icon). Die Zwischenablage wird nie automatisch verändert. |
+| **⌃V** | Antwort wird dort eingefügt, wo der Cursor steht. Nur sofort: Lädt die Antwort noch, passiert nichts (nach dem ✓ erneut drücken). Ist kein Textfeld aktiv, passiert nichts (grauer ? am Icon). Die Zwischenablage wird nie automatisch verändert. |
 | **⌃ gedrückt halten + Maus in die Ecke unten links** | Dezentes Panel mit der Antwort, Quellen und Folgefragen. Maus weg → es verschwindet. Sonst öffnet es sich nie, auch nicht bei Fehlern (dann rotes ! am Icon). |
 | ⌘C / ⌘V | bleiben ganz normal. |
 | <kbd>Esc</kbd> | Antwort stoppen bzw. Panel schließen |

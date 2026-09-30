@@ -159,7 +159,6 @@
   let cornerTimer = null;
   let renderQueued = false;
   let hintVisible = false;
-  let pendingPaste = false;
   let silentTurn = false;
   let peek = false; // per Ecke geöffnet, noch nichts gefragt → verschwindet beim Wegziehen
 
@@ -494,7 +493,6 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
 
   // ---------- Anfrage ----------
   function stop() {
-    pendingPaste = false;
     if (port) { port.disconnect(); port = null; }
     if (streaming) {
       setStreaming(false);
@@ -571,7 +569,6 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
         tag.className = "copied";
         tag.textContent = `✓ Fertig. ${INSERT_KEY} fügt die Antwort am Cursor ein`;
         currentTurn.appendChild(tag);
-        if (pendingPaste) pasteAnswer();
         myPort.disconnect();
         port = null;
       } else if (m.type === "error") {
@@ -580,7 +577,6 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
         const a = currentTurn.querySelector(".a");
         a.classList.remove("caret");
         a.innerHTML = `<div class="err">${esc(m.text)}${m.code === "no-key" ? '<br><button class="setkey">API-Key eintragen</button>' : ""}</div>`;
-        pendingPaste = false;
         if (!silentTurn) open(); // still gestellte Fragen: Fehler nur am Icon (!)
         myPort.disconnect();
         port = null;
@@ -627,12 +623,12 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
     if (isOpen()) flash("Kein Textfeld gefunden. Erst ins Feld klicken, dann " + INSERT_KEY);
   };
 
-  // ⌃V: fertige Antwort einfügen; läuft sie noch, wird nach Abschluss eingefügt.
+  // ⌃V: fertige Antwort sofort am Cursor einfügen, sonst nichts.
   function pasteAnswer() {
-    if (streaming) { pendingPaste = true; if (isOpen()) flash("Wird eingefügt, sobald die Antwort fertig ist"); return; }
+    // Nur sofortiges Einfügen: läuft die Antwort noch, passiert nichts (später erneut ⌃V).
+    if (streaming) { if (isOpen()) flash("Antwort lädt noch. Nach dem ✓ nochmal " + INSERT_KEY); return; }
     const text = plain(answerText);
     if (!text) { if (isOpen()) flash("Noch keine Antwort"); return; }
-    pendingPaste = false;
     chrome.runtime.sendMessage({ type: "insert-answer", text }, () => void chrome.runtime.lastError);
   }
 

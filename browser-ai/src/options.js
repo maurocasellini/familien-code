@@ -214,6 +214,7 @@ async function addFiles(fileList) {
       docs.push(doc);
       await setDocs(docs);
       renderDocs();
+
       flashSaved("Hinzugefügt");
     } catch (err) {
       status.className = "bad";
@@ -463,3 +464,33 @@ drop.addEventListener("drop", (e) => {
   addFiles([...e.dataTransfer.files]);
 });
 renderDocs();
+
+// Tatsächlich zugewiesene Tastenkürzel anzeigen und vor Verwechslungen warnen
+chrome.commands.getAll((cmds) => {
+  const box = $("shortcuts");
+  const by = Object.fromEntries(cmds.map((c) => [c.name, c.shortcut || ""]));
+  const pretty = (k) => k ? k.replace(/MacCtrl\+|Ctrl\+/g, "⌃").replace(/Command\+/g, "⌘").replace(/Alt\+/g, "⌥").replace(/Shift\+/g, "⇧") : "nicht belegt";
+  const rows = [
+    ["Frage an die KI (markierten Text)", by["ask-selection"]],
+    ["Antwort am Cursor einfügen", by["paste-answer"]],
+  ];
+  box.replaceChildren(...rows.map(([label, key]) => {
+    const d = document.createElement("div");
+    d.innerHTML = `<span></span><kbd></kbd>`;
+    d.firstChild.textContent = label;
+    d.lastChild.textContent = pretty(key);
+    return d;
+  }));
+  const ask = by["ask-selection"], paste = by["paste-answer"];
+  const warnings = [];
+  if (!ask) warnings.push("„Frage an die KI“ hat kein Tastenkürzel.");
+  if (!paste) warnings.push("„Antwort einfügen“ hat kein Tastenkürzel.");
+  if (paste && /\+C$/.test(paste)) warnings.push("„Antwort einfügen“ liegt auf einer C-Taste. Dann fügt ⌃C die letzte Antwort ein, statt zu fragen.");
+  if (ask && /\+V$/.test(ask)) warnings.push("„Frage an die KI“ liegt auf einer V-Taste. Bitte tauschen.");
+  if (warnings.length) {
+    const w = document.createElement("div");
+    w.className = "warn";
+    w.textContent = warnings.join(" ") + " Korrigieren unter chrome://extensions/shortcuts (⌃C = Frage, ⌃V = Einfügen).";
+    box.appendChild(w);
+  }
+});

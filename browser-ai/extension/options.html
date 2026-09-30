@@ -51,6 +51,9 @@
   .folderbtns { display:flex; gap:8px; }
   .folderbtns button { padding:6px 12px; font-size:13.5px; }
   [hidden] { display:none !important; }
+  #shortcuts { margin:4px 0 10px; font-size:13.5px; }
+  #shortcuts div { display:flex; justify-content:space-between; gap:12px; padding:4px 0; }
+  #shortcuts .warn { color:var(--bad); padding:6px 0; }
   #kbStatus, #kbSummary { font-size:13px; color:var(--muted); min-height:1.3em; }
 </style>
 </head>
@@ -139,10 +142,11 @@
       <b>So nutzt du es</b>
       <ul>
         <li><b>Text markieren + <kbd>⌃</kbd><kbd>C</kbd></b> → Frage geht an die KI (auch Text in Eingabefeldern).</li>
-        <li><b><kbd>⌃</kbd><kbd>V</kbd></b> → Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, kommt sie, sobald sie fertig ist.</li>
+        <li><b><kbd>⌃</kbd><kbd>V</kbd></b> → Antwort wird dort eingefügt, wo der Cursor steht. Nur wenn du ⌃V drückst und die Antwort fertig ist (✓ am Icon), nie von selbst.</li>
         <li><b><kbd>⌃</kbd> gedrückt halten und mit der Maus in die Ecke unten links</b> → Panel mit der Antwort, Folgefragen möglich. Sonst erscheint es nie.</li>
         <li><kbd>Esc</kbd> stoppt bzw. schließt, 📌 hält das Panel offen.</li>
       </ul>
+      <div id="shortcuts"></div>
       <span class="hint">Tastenkürzel prüfen oder ändern: <code>chrome://extensions/shortcuts</code> (Windows: Alt+Shift statt ⌃). ⌃ ist die Control-Taste, nicht ⌘.</span>
     </div>
   </section>
