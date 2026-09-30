@@ -166,40 +166,53 @@ async function prepare(file) {
   return { upload: new File([text], `${base}.txt`, { type: "text/plain" }), kind: "text" };
 }
 
+const SUPPORTED = /\.(pdf|pptx|docx|txt|md|markdown|csv|json|html?)$/i;
+
+// Eine Datei vorbereiten, hochladen und ihren Umfang messen → Eintrag für die Liste
+async function uploadOne(api, model, file, label = file.name) {
+  const status = $("kbStatus");
+  status.textContent = `${label}: wird vorbereitet …`;
+  const { upload, kind } = await prepare(file);
+  status.textContent = `${label}: wird hochgeladen …`;
+  const meta = await api.files.upload({ file: upload });
+  let tokens = null;
+  try {
+    const count = await api.messages.countTokens({
+      model,
+      messages: [{ role: "user", content: [
+        { type: "document", source: { type: "file", file_id: meta.id } },
+        { type: "text", text: "." },
+      ] }],
+    });
+    tokens = count.input_tokens;
+  } catch {
+    // Zählen ist optional
+  }
+  return { fileId: meta.id, name: file.name, kind, tokens, enabled: true, addedAt: Date.now() };
+}
+
+async function apiAndModel() {
+  const api = await client();
+  const { model = DEFAULTS.model } = await chrome.storage.local.get("model");
+  return { api, model };
+}
+
 async function addFiles(fileList) {
   const status = $("kbStatus");
   status.className = "";
-  let api;
+  let ctx;
   try {
-    api = await client();
+    ctx = await apiAndModel();
   } catch (err) {
     status.className = "bad";
     status.textContent = err.message;
     return;
   }
-  const { model = DEFAULTS.model } = await chrome.storage.local.get("model");
   for (const file of fileList) {
     try {
-      status.textContent = `${file.name}: wird vorbereitet …`;
-      const { upload, kind } = await prepare(file);
-      status.textContent = `${file.name}: wird hochgeladen …`;
-      const meta = await api.files.upload({ file: upload });
-      let tokens = null;
-      try {
-        status.textContent = `${file.name}: Umfang wird gemessen …`;
-        const count = await api.messages.countTokens({
-          model,
-          messages: [{ role: "user", content: [
-            { type: "document", source: { type: "file", file_id: meta.id } },
-            { type: "text", text: "." },
-          ] }],
-        });
-        tokens = count.input_tokens;
-      } catch {
-        // Zählen ist optional
-      }
+      const doc = await uploadOne(ctx.api, ctx.model, file);
       const docs = await getDocs();
-      docs.push({ fileId: meta.id, name: file.name, kind, tokens, enabled: true, addedAt: Date.now() });
+      docs.push(doc);
       await setDocs(docs);
       renderDocs();
       flashSaved("Hinzugefügt");
@@ -211,6 +224,179 @@ async function addFiles(fileList) {
   }
   status.textContent = "";
 }
+
+// ---------------------------------------------------------------------------
+// Ordner verbinden: Chrome merkt sich den Ordner (File System Access API).
+// "Synchronisieren" lädt neue/geänderte Dateien hoch und entfernt gelöschte.
+// ---------------------------------------------------------------------------
+
+function idb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("eckblick", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("kv");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function kv(key, value) {
+  const db = await idb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("kv", value === undefined ? "readonly" : "readwrite");
+    const store = tx.objectStore("kv");
+    const req = value === undefined ? store.get(key) : value === null ? store.delete(key) : store.put(value, key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Ordner-Handle merken (IndexedDB, dauerhaft) mit Speicher-Fallback
+let memFolder = null;
+async function getFolder() {
+  try { return (await kv("folder")) ?? memFolder; } catch { return memFolder; }
+}
+async function setFolder(dir) {
+  memFolder = dir;
+  try { await kv("folder", dir); } catch { /* Handle nicht speicherbar: nur für diese Sitzung */ }
+}
+
+async function* walk(dir, prefix = "", depth = 0) {
+  for await (const [name, handle] of dir.entries()) {
+    if (name.startsWith(".") || name.startsWith("~$")) continue;
+    const path = prefix ? `${prefix}/${name}` : name;
+    if (handle.kind === "directory") {
+      if (depth < 4) yield* walk(handle, path, depth + 1);
+    } else if (SUPPORTED.test(name)) {
+      yield { path, handle };
+    }
+  }
+}
+
+const MAX_FOLDER_FILES = 60;
+
+async function syncFolder({ interactive = true } = {}) {
+  const status = $("kbStatus");
+  status.className = "";
+  const dir = await getFolder();
+  if (!dir) return;
+  let perm = await dir.queryPermission({ mode: "read" });
+  if (perm !== "granted" && interactive) perm = await dir.requestPermission({ mode: "read" });
+  if (perm !== "granted") {
+    status.textContent = `Ordner „${dir.name}“: Zugriff bestätigen mit „Synchronisieren“.`;
+    return;
+  }
+  let ctx;
+  try {
+    ctx = await apiAndModel();
+  } catch (err) {
+    status.className = "bad";
+    status.textContent = err.message;
+    return;
+  }
+
+  const found = [];
+  for await (const entry of walk(dir)) {
+    found.push(entry);
+    if (found.length > MAX_FOLDER_FILES) break;
+  }
+  if (found.length > MAX_FOLDER_FILES) {
+    status.className = "bad";
+    status.textContent = `Mehr als ${MAX_FOLDER_FILES} Dateien im Ordner. Bitte einen kleineren Ordner nur mit den wichtigsten Unterlagen wählen.`;
+    return;
+  }
+
+  let docs = await getDocs();
+  const seen = new Set();
+  let added = 0, updated = 0, removed = 0, failed = 0;
+  for (const { path, handle } of found) {
+    seen.add(path);
+    const file = await handle.getFile();
+    const old = docs.find((d) => d.folderPath === path);
+    if (old && old.lastModified === file.lastModified && old.size === file.size) continue;
+    try {
+      const doc = await uploadOne(ctx.api, ctx.model, file, path);
+      Object.assign(doc, { folderPath: path, lastModified: file.lastModified, size: file.size, name: path });
+      if (old) {
+        doc.enabled = old.enabled;
+        ctx.api.files.delete(old.fileId).catch(() => {});
+        docs = docs.map((d) => (d === old ? doc : d));
+        updated++;
+      } else {
+        docs.push(doc);
+        added++;
+      }
+      await setDocs(docs);
+      renderDocs();
+    } catch {
+      failed++;
+    }
+  }
+  for (const d of docs.filter((x) => x.folderPath && !seen.has(x.folderPath))) {
+    ctx.api.files.delete(d.fileId).catch(() => {});
+    removed++;
+  }
+  docs = docs.filter((x) => !x.folderPath || seen.has(x.folderPath));
+  await setDocs(docs);
+  await chrome.storage.local.set({ folderSyncedAt: Date.now() });
+  renderDocs();
+  renderFolder();
+  const parts = [];
+  if (added) parts.push(`${added} neu`);
+  if (updated) parts.push(`${updated} aktualisiert`);
+  if (removed) parts.push(`${removed} entfernt`);
+  if (failed) parts.push(`${failed} nicht lesbar (Tipp: als PDF speichern)`);
+  status.textContent = `Ordner „${dir.name}“ synchronisiert${parts.length ? `: ${parts.join(", ")}` : ", alles aktuell"}.`;
+}
+
+async function connectFolder() {
+  if (!window.showDirectoryPicker) {
+    $("kbStatus").textContent = "Dieser Browser unterstützt keine Ordner-Verbindung. Bitte Chrome, Edge oder Brave nutzen.";
+    return;
+  }
+  let dir;
+  try {
+    dir = await window.showDirectoryPicker({ id: "eckblick-kb", mode: "read" });
+  } catch {
+    return; // abgebrochen
+  }
+  await setFolder(dir);
+  renderFolder();
+  syncFolder();
+}
+
+async function disconnectFolder() {
+  await setFolder(null);
+  let docs = await getDocs();
+  const fromFolder = docs.filter((d) => d.folderPath);
+  try {
+    const { api } = await apiAndModel();
+    for (const d of fromFolder) api.files.delete(d.fileId).catch(() => {});
+  } catch {
+    // ohne Key nur lokal entfernen
+  }
+  docs = docs.filter((d) => !d.folderPath);
+  await setDocs(docs);
+  renderDocs();
+  renderFolder();
+  $("kbStatus").textContent = "Ordner getrennt.";
+}
+
+async function renderFolder() {
+  const dir = await getFolder();
+  const { folderSyncedAt } = await chrome.storage.local.get("folderSyncedAt");
+  $("folderInfo").textContent = dir
+    ? `Verbunden: „${dir.name}“${folderSyncedAt ? `, zuletzt synchronisiert ${new Date(folderSyncedAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}` : ""}`
+    : "Kein Ordner verbunden.";
+  $("folderConnect").textContent = dir ? "Anderen Ordner wählen" : "Ordner verbinden";
+  $("folderSync").hidden = !dir;
+  $("folderDisconnect").hidden = !dir;
+}
+
+$("folderConnect").addEventListener("click", connectFolder);
+$("folderSync").addEventListener("click", () => syncFolder());
+$("folderDisconnect").addEventListener("click", disconnectFolder);
+renderFolder();
+// Beim Öffnen der Einstellungen still nachziehen, falls Chrome den Zugriff noch erlaubt
+syncFolder({ interactive: false }).catch(() => {});
 
 async function removeDoc(fileId) {
   const docs = (await getDocs()).filter((d) => d.fileId !== fileId);

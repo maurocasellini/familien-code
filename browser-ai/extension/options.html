@@ -47,6 +47,10 @@
   .doc button { padding:4px 10px; font-size:12.5px; font-weight:500; }
   .switch.small { width:34px; height:20px; } .switch.small span::after { width:14px; height:14px; }
   .switch.small input:checked + span::after { transform:translateX(14px); }
+  .folder { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:12px; padding:12px 14px; background:var(--bg); border-radius:11px; }
+  .folderbtns { display:flex; gap:8px; }
+  .folderbtns button { padding:6px 12px; font-size:13.5px; }
+  [hidden] { display:none !important; }
   #kbStatus, #kbSummary { font-size:13px; color:var(--muted); min-height:1.3em; }
 </style>
 </head>
@@ -118,7 +122,15 @@
     <div class="row col">
       <h2>Wissensbasis</h2>
       <span class="hint">Eigene Unterlagen, auf die sich die Antworten zuerst stützen: Präsentationen, Summaries, Skripte. Das Panel zeigt, aus welchem Dokument (und von welcher Seite) eine Antwort stammt. Die Dateien liegen in deinem Anthropic-API-Konto. Für Präsentationen am besten <b>PDF</b> nehmen, dann sieht Claude auch Grafiken und Layout.</span>
-      <div id="kbDrop" class="drop">Dateien hierher ziehen oder klicken<br><small>PDF, PPTX, DOCX, TXT, MD, CSV</small></div>
+      <div class="folder">
+        <div id="folderInfo" class="hint">Kein Ordner verbunden.</div>
+        <div class="folderbtns">
+          <button id="folderConnect" type="button">Ordner verbinden</button>
+          <button id="folderSync" class="ghost" type="button" hidden>Synchronisieren</button>
+          <button id="folderDisconnect" class="ghost" type="button" hidden>Trennen</button>
+        </div>
+      </div>
+      <div id="kbDrop" class="drop">Oder einzelne Dateien hierher ziehen bzw. klicken<br><small>PDF, PPTX, DOCX, TXT, MD, CSV</small></div>
       <input id="kbFile" type="file" multiple accept=".pdf,.pptx,.docx,.txt,.md,.markdown,.csv,.json,.html,.htm" hidden>
       <div id="kbStatus"></div>
       <div id="kbList"></div>

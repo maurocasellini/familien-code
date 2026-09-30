@@ -16,7 +16,9 @@ Antworten sind **einfügefertig**: so kompakt wie möglich (auch komplexe Fragen
 
 ## Wissensbasis (eigene Unterlagen)
 
-In den Einstellungen Dateien hochladen: **PDF, PPTX, DOCX, TXT, MD, CSV**. Jede neue Frage bekommt die aktiven Dokumente als Kontext mit; Claude stützt sich zuerst darauf. Das Panel zeigt als kleine Marke, aus welchem Dokument und von welcher Seite die Antwort stammt (z. B. „📄 Strategie.pdf, S. 4“).
+**Ordner verbinden (empfohlen):** In den Einstellungen unter „Wissensbasis“ auf „Ordner verbinden“ klicken und einen Ordner wählen (auch ein Google-Drive- oder Dropbox-Ordner auf dem Mac). Alle unterstützten Dateien darin, inkl. Unterordner (max. 60 Dateien), werden übernommen. „Synchronisieren“ lädt neue und geänderte Dateien nach und entfernt gelöschte; beim Öffnen der Einstellungen passiert das automatisch, solange Chrome den Zugriff noch erlaubt.
+
+Alternativ einzelne Dateien hochladen: **PDF, PPTX, DOCX, TXT, MD, CSV**. Jede neue Frage bekommt die aktiven Dokumente als Kontext mit; Claude stützt sich zuerst darauf. Das Panel zeigt als kleine Marke, aus welchem Dokument und von welcher Seite die Antwort stammt (z. B. „📄 Strategie.pdf, S. 4“).
 
 - Präsentationen am besten als **PDF** exportieren, dann sieht Claude auch Grafiken und Layout. PPTX/DOCX werden lokal in Text umgewandelt (inkl. Sprechernotizen).
 - Die Dateien liegen in deinem Anthropic-API-Konto (Files API), nicht auf einem fremden Server.
