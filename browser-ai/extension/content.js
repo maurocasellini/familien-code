@@ -182,11 +182,11 @@
 
   root.innerHTML = `
 <style>
-:host { --bg: rgba(255,255,255,.28); --fg:#2b2d30; --faint:#8a8f94; --line:rgba(0,0,0,.05);
+:host { --halo: rgba(255,255,255,.7); --bg: rgba(255,255,255,.14); --fg:#2b2d30; --faint:#8a8f94; --line:rgba(0,0,0,.05);
   --accent:#5f6368; --soft:rgba(0,0,0,.04); --code:rgba(0,0,0,.04);
   --shadow:0 2px 12px -6px rgba(0,0,0,.08); }
 /* Farbe folgt der Webseite (nicht dem System): helle Seite → weiß, dunkle Seite → dunkel */
-:host([data-theme="dark"]) { --bg: rgba(30,31,34,.28); --fg:#e8eaed; --faint:#9aa0a6; --line:rgba(255,255,255,.06);
+:host([data-theme="dark"]) { --halo: rgba(0,0,0,.6); --bg: rgba(30,31,34,.14); --fg:#e8eaed; --faint:#9aa0a6; --line:rgba(255,255,255,.06);
   --accent:#dadce0; --soft:rgba(255,255,255,.06); --code:rgba(255,255,255,.06);
   --shadow:0 2px 12px -6px rgba(0,0,0,.3); }
 * { box-sizing:border-box; }
@@ -200,6 +200,7 @@ svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7;
   max-height:min(62vh, 520px); display:flex; flex-direction:column;
   font: 12.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color:var(--fg);
   -webkit-font-smoothing:antialiased;
+  text-shadow: 0 0 6px var(--halo); /* hält die Schrift bei starker Transparenz lesbar */
   background:var(--bg); backdrop-filter: blur(40px) saturate(1.1); -webkit-backdrop-filter: blur(40px) saturate(1.1);
   border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
   transform: translateY(6px); opacity:0; pointer-events:none;
