@@ -183,14 +183,13 @@
 
   root.innerHTML = `
 <style>
-:host { --bg: rgba(248,249,250,.72); --fg:#202124; --faint:#9aa0a6; --line:rgba(0,0,0,.07);
+:host { --bg: rgba(255,255,255,.8); --fg:#202124; --faint:#70757a; --line:rgba(0,0,0,.08);
   --accent:#5f6368; --soft:rgba(0,0,0,.05); --code:rgba(0,0,0,.05);
-  --shadow:0 8px 28px -10px rgba(0,0,0,.22), 0 1px 3px rgba(0,0,0,.06); }
-@media (prefers-color-scheme: dark) {
-  :host { --bg: rgba(41,42,45,.7); --fg:#e3e3e3; --faint:#80858b; --line:rgba(255,255,255,.07);
-    --accent:#bdc1c6; --soft:rgba(255,255,255,.06); --code:rgba(255,255,255,.07);
-    --shadow:0 8px 28px -10px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.25); }
-}
+  --shadow:0 8px 28px -10px rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.08); }
+/* Farbe folgt der Webseite (nicht dem System): helle Seite → weiß, dunkle Seite → dunkel */
+:host([data-theme="dark"]) { --bg: rgba(28,29,32,.8); --fg:#f1f3f4; --faint:#a8adb3; --line:rgba(255,255,255,.1);
+  --accent:#dadce0; --soft:rgba(255,255,255,.08); --code:rgba(255,255,255,.08);
+  --shadow:0 8px 28px -10px rgba(0,0,0,.7), 0 1px 3px rgba(0,0,0,.3); }
 * { box-sizing:border-box; }
 svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 
@@ -384,11 +383,38 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
 
   // ---------- Panel-Zustand ----------
   const isOpen = () => panel.classList.contains("open");
+
+  // Hintergrundfarbe der Seite dort messen, wo das Panel erscheint
+  function parseColor(c) {
+    const m = c.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/);
+    return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
+  }
+  function bgAt(x, y) {
+    let el = document.elementsFromPoint(x, y).find((e) => e !== host && !host.contains(e));
+    while (el && el.nodeType === 1) {
+      const c = parseColor(getComputedStyle(el).backgroundColor);
+      if (c && c.a > 0.5) return c;
+      el = el.parentElement;
+    }
+    return null;
+  }
+  function pageTheme() {
+    const h = window.innerHeight;
+    const c = bgAt(40, h - 40) ?? bgAt(200, h - 150) ?? parseColor(getComputedStyle(document.body ?? document.documentElement).backgroundColor);
+    if (!c || c.a <= 0.5) {
+      // Kein Hintergrund gesetzt: Browser-Standard ist weiß, außer die Seite nutzt ihr dunkles Farbschema
+      const dark = /dark/.test(getComputedStyle(document.documentElement).colorScheme) && matchMedia("(prefers-color-scheme: dark)").matches;
+      return dark ? "dark" : "light";
+    }
+    const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+    return lum < 128 ? "dark" : "light";
+  }
   function open({ focus = false, viaCorner = false } = {}) {
     clearTimeout(hideTimer);
     hideTimer = null;
     peek = viaCorner;
     if (!isOpen()) {
+      host.dataset.theme = pageTheme();
       panel.classList.add("open");
       hint.style.opacity = "0";
       hintVisible = false;
