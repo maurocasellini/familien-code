@@ -4,13 +4,13 @@ Browser-Erweiterung (Chrome, Edge, Brave, Arc – alle Chromium-Browser). Die KI
 
 | Aktion | Was passiert |
 |---|---|
-| **Text markieren + ⌃C** (Control, nicht ⌘) | Frage geht still im Hintergrund an die KI, kein Fenster springt auf. Das Icon zeigt „…“ solange sie arbeitet und ✓ wenn die Antwort fertig ist (rotes ! bei Fehlern, dann öffnet sich das Panel). Funktioniert auch in Eingabefeldern und iframes. |
+| **Text markieren + ⌃C** (Control, nicht ⌘) | Frage geht still im Hintergrund an die KI, kein Fenster springt auf. Das Icon zeigt „…“ solange sie arbeitet und ✓ wenn die Antwort fertig ist (rotes ! bei Fehlern, Details im Panel). Funktioniert auch in Eingabefeldern und iframes. |
 | **⌃V** | Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, wird sie eingefügt, sobald sie fertig ist. Ist kein Textfeld aktiv, landet sie in der Zwischenablage. |
-| **Maus in die Ecke unten links** oder **⌃⇧K** | Dezentes Panel mit der Antwort, Quellen und Folgefragen. Maus weg → es verschwindet. |
+| **⌃ gedrückt halten + Maus in die Ecke unten links** | Dezentes Panel mit der Antwort, Quellen und Folgefragen. Maus weg → es verschwindet. Sonst öffnet es sich nie, auch nicht bei Fehlern (dann rotes ! am Icon). |
 | ⌘C / ⌘V | bleiben ganz normal. |
 | <kbd>Esc</kbd> | Antwort stoppen bzw. Panel schließen |
 
-Windows: Alt+Shift+C / Alt+Shift+V / Alt+Shift+K. Ändern unter `chrome://extensions/shortcuts`. In den Einstellungen kann man den Auslöser auch auf „Markieren + ⌘C“ oder „Nur markieren“ umstellen.
+Windows: Alt+Shift+C / Alt+Shift+V. Ändern unter `chrome://extensions/shortcuts`. In den Einstellungen kann man den Auslöser auch auf „Markieren + ⌘C“ oder „Nur markieren“ umstellen.
 
 Antworten sind **einfügefertig**: so kompakt wie möglich (auch komplexe Fragen höchstens etwa 500 Zeichen), sprachlich einfach, deutsche Rechtschreibung (Deutschland), kein KI-Stil, keine Gedankenstriche, kein Markdown. Aufzählungen nur als schlichte Zeilen mit `- `.
 

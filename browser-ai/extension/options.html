@@ -89,7 +89,7 @@
       <label class="switch"><input id="autoCopy" type="checkbox"><span></span></label>
     </div>
     <div class="row">
-      <label for="showPanel"><b>Panel bei neuer Frage anzeigen</b><small>Aus: ⌃C arbeitet unsichtbar im Hintergrund, das Icon zeigt … und ✓. Das Panel gibt es über die Ecke unten links oder ⌃⇧K.</small></label>
+      <label for="showPanel"><b>Panel bei neuer Frage anzeigen</b><small>Aus: ⌃C arbeitet unsichtbar im Hintergrund, das Icon zeigt … und ✓. Das Panel gibt es nur mit gedrückter ⌃-Taste über die Ecke unten links.</small></label>
       <label class="switch"><input id="showPanel" type="checkbox"><span></span></label>
     </div>
     <div class="row">
@@ -109,7 +109,7 @@
       <label class="switch"><input id="webSearch" type="checkbox"><span></span></label>
     </div>
     <div class="row">
-      <label for="cornerDelay"><b>Ecken-Verzögerung (ms)</b><small>Wie lange die Maus in der Ecke sein muss. 0 = sofort.</small></label>
+      <label for="cornerDelay"><b>Ecken-Verzögerung (ms)</b><small>Wie lange die Maus mit gedrückter ⌃-Taste in der Ecke sein muss. 0 = sofort.</small></label>
       <input id="cornerDelay" type="number" min="0" max="2000" step="10">
     </div>
   </section>
@@ -132,7 +132,7 @@
       <ul>
         <li><b>Text markieren + <kbd>⌃</kbd><kbd>C</kbd></b> → Frage geht an die KI (auch Text in Eingabefeldern).</li>
         <li><b><kbd>⌃</kbd><kbd>V</kbd></b> → Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, kommt sie, sobald sie fertig ist.</li>
-        <li><b>Maus in die Ecke unten links</b> oder <kbd>⌃</kbd><kbd>⇧</kbd><kbd>K</kbd> → Panel mit der Antwort, Folgefragen möglich.</li>
+        <li><b><kbd>⌃</kbd> gedrückt halten und mit der Maus in die Ecke unten links</b> → Panel mit der Antwort, Folgefragen möglich. Sonst erscheint es nie.</li>
         <li><kbd>Esc</kbd> stoppt bzw. schließt, 📌 hält das Panel offen.</li>
       </ul>
       <span class="hint">Tastenkürzel prüfen oder ändern: <code>chrome://extensions/shortcuts</code> (Windows: Alt+Shift statt ⌃). ⌃ ist die Control-Taste, nicht ⌘.</span>

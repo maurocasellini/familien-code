@@ -152,6 +152,7 @@
   let renderQueued = false;
   let hintVisible = false;
   let pendingPaste = false;
+  let silentTurn = false;
   let peek = false; // per Ecke geöffnet, noch nichts gefragt → verschwindet beim Wegziehen
 
   // ---------- DOM ----------
@@ -489,7 +490,8 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
     messages.push({ role: "user", content: messages.length ? userContent : withPage(userContent) });
     answerText = "";
     chips.innerHTML = "";
-    if (!silent || settings.showPanel) open();
+    silentTurn = silent && !settings.showPanel;
+    if (!silentTurn) open();
     newTurn(label, kind);
     setStreaming(true);
 
@@ -557,7 +559,7 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
         a.classList.remove("caret");
         a.innerHTML = `<div class="err">${esc(m.text)}${m.code === "no-key" ? '<br><button class="setkey">API-Key eintragen</button>' : ""}</div>`;
         pendingPaste = false;
-        open(); // Fehler immer zeigen, auch bei stillen Fragen
+        if (!silentTurn) open(); // still gestellte Fragen: Fehler nur am Icon (!)
         myPort.disconnect();
         port = null;
       }
@@ -625,14 +627,16 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
   on(document, "mousemove", (e) => {
     const x = e.clientX, y = e.clientY;
     const dist = Math.hypot(x, window.innerHeight - y);
-    if (dist < HINT_RADIUS && !isOpen()) {
+    lastX = x; lastY = y;
+    // Panel nur mit gedrückter Control-Taste über die Ecke, sonst nie
+    if (dist < HINT_RADIUS && !isOpen() && e.ctrlKey) {
       hint.style.opacity = String(Math.max(0, 1 - dist / HINT_RADIUS) * 0.9);
       hintVisible = true;
     } else if (hintVisible) {
       hint.style.opacity = "0";
       hintVisible = false;
     }
-    if (inCorner(x, y)) armCorner(); else disarmCorner();
+    if (inCorner(x, y) && e.ctrlKey) armCorner(); else disarmCorner();
     if (peek && isOpen() && !hideTimer) {
       const r = panel.getBoundingClientRect();
       const away = x > r.right + 60 || y < r.top - 60;
@@ -642,8 +646,16 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
 
   // Maus verlässt das Fenster genau in der Ecke (schneller Wisch)
   on(document, "mouseout", (e) => {
-    if (!e.relatedTarget && e.clientX <= 12 && e.clientY >= window.innerHeight - 12) armCorner();
+    if (e.ctrlKey && !e.relatedTarget && e.clientX <= 12 && e.clientY >= window.innerHeight - 12) armCorner();
   });
+  // Control erst drücken, wenn die Maus schon in der Ecke ist
+  let lastX = -1, lastY = -1;
+  on(document, "keydown", (e) => {
+    if (e.key === "Control" && !e.repeat && lastX >= 0 && lastX <= 12 && lastY >= window.innerHeight - 12) armCorner();
+  }, true);
+  on(document, "keyup", (e) => {
+    if (e.key === "Control") { disarmCorner(); if (hintVisible) { hint.style.opacity = "0"; hintVisible = false; } }
+  }, true);
 
   // ---------- Panel-Interaktion ----------
   panel.addEventListener("mouseenter", () => { clearTimeout(hideTimer); hideTimer = null; });
