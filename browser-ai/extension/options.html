@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eckblick AI – Einstellungen</title>
+<style>
+  :root { --bg:#f6f5f2; --card:#fff; --fg:#1b1d22; --muted:#6b7080; --line:#e6e4df; --accent:#d97757; --ok:#2f9e6b; --bad:#d4493b; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#16171b; --card:#1f2026; --fg:#ecedf0; --muted:#9a9eab; --line:#2d2e36; --accent:#e58b6b; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:620px; margin:0 auto; padding:40px 16px 60px; }
+  h1 { font-size:24px; margin:0 0 4px; display:flex; align-items:center; gap:10px; }
+  h1 img { width:32px; height:32px; }
+  .sub { color:var(--muted); margin:0 0 28px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:6px 18px; margin-bottom:18px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .row:last-child { border-bottom:0; }
+  .row.col { flex-direction:column; align-items:stretch; }
+  label b { display:block; font-weight:600; }
+  label small, .hint { color:var(--muted); font-size:13px; }
+  input[type=password], input[type=text], input[type=number], select {
+    font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:8px 11px; }
+  input[type=number] { width:90px; }
+  .key { display:flex; gap:8px; margin-top:8px; } .key input { flex:1; min-width:0; font-family: ui-monospace, monospace; font-size:13.5px; }
+  button { font:inherit; font-weight:600; border:0; border-radius:9px; padding:8px 14px; cursor:pointer; background:var(--accent); color:#fff; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); }
+  .switch { position:relative; width:44px; height:26px; flex:none; }
+  .switch input { opacity:0; width:0; height:0; }
+  .switch span { position:absolute; inset:0; background:var(--line); border-radius:99px; transition:.15s; cursor:pointer; }
+  .switch span::after { content:""; position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.15s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+  .switch input:checked + span { background:var(--accent); } .switch input:checked + span::after { transform:translateX(18px); }
+  #status { min-height:1.4em; margin-top:8px; font-size:13.5px; } .ok { color:var(--ok); } .bad { color:var(--bad); }
+  .saved { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--fg); color:var(--bg); padding:6px 14px; border-radius:9px; font-size:13px; opacity:0; transition:opacity .2s; }
+  .saved.show { opacity:1; }
+  kbd { font:12px ui-monospace, monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px; background:var(--bg); }
+  ul { padding-left:1.2em; margin:10px 0; } li { margin:4px 0; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1><img src="icons/128.png" alt="">Eckblick AI</h1>
+  <p class="sub">Claude in der Bildschirmecke – nur da, wenn du es brauchst.</p>
+
+  <section>
+    <div class="row col">
+      <label for="apiKey"><b>Anthropic API-Key</b><small>Wird nur lokal in diesem Browser gespeichert. Key erstellen unter <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.</small></label>
+      <div class="key">
+        <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+        <button id="toggleKey" class="ghost" type="button">Zeigen</button>
+        <button id="test" type="button">Testen</button>
+      </div>
+      <div id="status"></div>
+    </div>
+    <div class="row">
+      <label for="model"><b>Modell</b><small>Opus = beste Qualität · Haiku = am schnellsten & günstigsten</small></label>
+      <select id="model">
+        <option value="claude-opus-5-5">Claude Opus 5.5</option>
+        <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+        <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+      </select>
+    </div>
+    <div class="row">
+      <label for="language"><b>Antwortsprache</b></label>
+      <select id="language">
+        <option value="auto">Wie die Frage</option>
+        <option value="de">Immer Deutsch</option>
+        <option value="en">Immer Englisch</option>
+      </select>
+    </div>
+  </section>
+
+  <section>
+    <div class="row">
+      <label for="autoAsk"><b>Auto-Frage beim Markieren</b><small>Markierter Text wird sofort gefragt. <kbd>Alt</kbd> beim Markieren gedrückt halten = unterdrücken.</small></label>
+      <label class="switch"><input id="autoAsk" type="checkbox"><span></span></label>
+    </div>
+    <div class="row">
+      <label for="minChars"><b>Mindestlänge der Markierung</b><small>Kürzere Markierungen werden ignoriert.</small></label>
+      <input id="minChars" type="number" min="1" max="200">
+    </div>
+    <div class="row">
+      <label for="webSearch"><b>Websuche standardmäßig an</b><small>Für aktuelle Fakten. Etwas langsamer, kostet extra pro Suche. Im Panel per 🌐 umschaltbar.</small></label>
+      <label class="switch"><input id="webSearch" type="checkbox"><span></span></label>
+    </div>
+    <div class="row">
+      <label for="cornerDelay"><b>Ecken-Verzögerung (ms)</b><small>Wie lange die Maus in der Ecke sein muss. 0 = sofort.</small></label>
+      <input id="cornerDelay" type="number" min="0" max="2000" step="10">
+    </div>
+  </section>
+
+  <section>
+    <div class="row col">
+      <b>So nutzt du es</b>
+      <ul>
+        <li><b>Maus in die Ecke unten links</b> → Panel erscheint. Maus weg → es verschwindet.</li>
+        <li><b>Text markieren</b> → Frage startet automatisch, Antwort streamt ins Panel.</li>
+        <li><kbd>Alt</kbd>+<kbd>K</kbd> Panel öffnen/schließen · <kbd>Alt</kbd>+<kbd>J</kbd> Markierung fragen · <kbd>Esc</kbd> stoppen/schließen</li>
+        <li>📌 Anheften hält das Panel offen, Folgefragen unten im Feld.</li>
+      </ul>
+      <span class="hint">Tastenkürzel ändern: <code>chrome://extensions/shortcuts</code></span>
+    </div>
+  </section>
+</main>
+<div class="saved">Gespeichert</div>
+<script src="options.js"></script>
+</body>
+</html>

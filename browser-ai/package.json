@@ -1,0 +1,17 @@
+{
+  "name": "eckblick-ai",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Browser-Erweiterung: Claude in der Bildschirmecke – Hot-Corner & Auto-Frage bei Textmarkierung",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "zip": "node build.mjs && cd extension && zip -r ../eckblick-ai.zip . -x '.*'"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
