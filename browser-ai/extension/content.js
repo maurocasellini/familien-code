@@ -182,13 +182,13 @@
 
   root.innerHTML = `
 <style>
-:host { --bg: rgba(255,255,255,.8); --fg:#202124; --faint:#70757a; --line:rgba(0,0,0,.08);
-  --accent:#5f6368; --soft:rgba(0,0,0,.05); --code:rgba(0,0,0,.05);
-  --shadow:0 8px 28px -10px rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.08); }
+:host { --bg: rgba(255,255,255,.62); --fg:#2b2d30; --faint:#8a8f94; --line:rgba(0,0,0,.05);
+  --accent:#5f6368; --soft:rgba(0,0,0,.04); --code:rgba(0,0,0,.04);
+  --shadow:0 4px 18px -8px rgba(0,0,0,.14); }
 /* Farbe folgt der Webseite (nicht dem System): helle Seite → weiß, dunkle Seite → dunkel */
-:host([data-theme="dark"]) { --bg: rgba(28,29,32,.8); --fg:#f1f3f4; --faint:#a8adb3; --line:rgba(255,255,255,.1);
-  --accent:#dadce0; --soft:rgba(255,255,255,.08); --code:rgba(255,255,255,.08);
-  --shadow:0 8px 28px -10px rgba(0,0,0,.7), 0 1px 3px rgba(0,0,0,.3); }
+:host([data-theme="dark"]) { --bg: rgba(30,31,34,.6); --fg:#e8eaed; --faint:#9aa0a6; --line:rgba(255,255,255,.06);
+  --accent:#dadce0; --soft:rgba(255,255,255,.06); --code:rgba(255,255,255,.06);
+  --shadow:0 4px 18px -8px rgba(0,0,0,.45); }
 * { box-sizing:border-box; }
 svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 
@@ -196,19 +196,22 @@ svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7;
   background: radial-gradient(circle, rgba(128,128,128,.45) 0%, rgba(128,128,128,.12) 45%, transparent 70%);
   opacity:0; pointer-events:none; transition: opacity .12s linear; }
 
-.panel { position:fixed; left:10px; bottom:10px; width:min(360px, calc(100vw - 20px));
+.panel { position:fixed; left:10px; bottom:10px; width:min(340px, calc(100vw - 20px));
   max-height:min(62vh, 520px); display:flex; flex-direction:column;
   font: 12.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color:var(--fg);
   -webkit-font-smoothing:antialiased;
-  background:var(--bg); backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  background:var(--bg); backdrop-filter: blur(30px) saturate(1.2); -webkit-backdrop-filter: blur(30px) saturate(1.2);
   border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
   transform: translateY(6px); opacity:0; pointer-events:none;
   transition: transform .16s ease, opacity .14s ease; }
 .panel.open { transform:none; opacity:1; pointer-events:auto; }
-.panel:not(:hover) .tools { opacity:.45; }
+/* Bedienelemente nur bei Maus über dem Panel */
+.panel:not(:hover) .tools, .panel:not(:hover) .chips, .panel:not(:hover) .copied { opacity:0; }
+.chips, .copied { transition:opacity .15s; }
+.panel:not(:hover) footer { border-top-color:transparent; }
 
 header { display:flex; align-items:center; gap:2px; padding:6px 6px 2px 12px; }
-.brand { display:flex; align-items:center; gap:6px; font-weight:500; font-size:11px; color:var(--faint); flex:1; min-width:0; letter-spacing:.02em; }
+.brand { display:flex; align-items:center; gap:6px; font-weight:400; font-size:10.5px; color:var(--faint); opacity:.8; flex:1; min-width:0; letter-spacing:.02em; }
 .brand .dot { display:grid; place-items:center; }
 .brand .dot svg { width:10px; height:10px; fill:currentColor; stroke:none; }
 .brand .model { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
