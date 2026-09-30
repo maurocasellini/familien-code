@@ -5,15 +5,15 @@ Browser-Erweiterung (Chrome, Edge, Brave, Arc – alle Chromium-Browser). Die KI
 | Aktion | Was passiert |
 |---|---|
 | **Maus in die Ecke unten links** | Panel gleitet auf, Eingabefeld hat Fokus. Maus wegziehen → Panel verschwindet. |
-| **Text markieren** | Markierung wird sofort als Frage geschickt, Antwort streamt ins Panel. Der umgebende Absatz wird als Kontext mitgeschickt. |
+| **Text markieren** | Markierung wird sofort als Frage geschickt. Die fertige Antwort liegt **automatisch in der Zwischenablage**: einfach ⌘V bzw. Strg+V. Das Panel kann man anschauen, muss man aber nicht. Ein grüner Haken am Icon zeigt, dass kopiert wurde. |
 | <kbd>Alt</kbd> beim Markieren | Auto-Frage unterdrücken (z. B. wenn du nur kopieren willst). |
 | <kbd>Alt</kbd>+<kbd>K</kbd> | Panel öffnen/schließen |
 | <kbd>Alt</kbd>+<kbd>J</kbd> | Aktuelle Markierung fragen (auch wenn Auto-Frage aus ist) |
 | <kbd>Esc</kbd> | Antwort stoppen bzw. Panel schließen |
 | 📌 / 🌐 | Panel anheften · Websuche an/aus |
-| Chips unter der Antwort | „Mehr Details“, „Einfacher erklären“, „Beispiel“ – Ein-Klick-Folgefragen |
+| Chips unter der Antwort | „Kürzer“, „Einfacher“, „Mehr Details“ als Ein-Klick-Folgefragen |
 
-Antworten sind bewusst **kompakt** (Kernaussage zuerst, ca. 40–120 Wörter, keine Floskeln). Die Erweiterung erkennt die Absicht der Markierung: Begriff → Erklärung, Fremdsprache → Übersetzung, Code/Fehler → Erklärung + Fix, Behauptung → Einordnung, langer Absatz → Kernaussagen.
+Antworten sind **einfügefertig**: kurz, sprachlich einfach, deutsche Rechtschreibung (Deutschland), kein KI-Stil, keine Gedankenstriche, kein Markdown. Aufzählungen nur wenn sinnvoll, und dann als schlichte Zeilen mit `- ` am Anfang. Zur Sicherheit werden Gedankenstriche und Formatierung vor dem Kopieren zusätzlich herausgefiltert. Die Absicht der Markierung wird erkannt: Begriff wird erklärt, Fremdsprache nur übersetzt, Code/Fehler mit Lösung, Behauptung eingeordnet, langer Absatz auf den Kern gebracht.
 
 ## Installation (2 Minuten)
 
@@ -25,7 +25,8 @@ Antworten sind bewusst **kompakt** (Kernaussage zuerst, ca. 40–120 Wörter, ke
 ## Einstellungen
 
 - **Modell:** Claude Opus 5.5 (Standard, beste Qualität), Sonnet 5.5, Haiku 4.5 (am schnellsten/günstigsten).
-- **Antwortsprache:** wie die Frage / immer Deutsch / immer Englisch.
+- **Antwort automatisch kopieren** (Standard an).
+- **Antwortsprache:** Deutsch (Deutschland, Standard) / wie die Frage / Englisch.
 - **Auto-Frage**, **Mindestlänge** der Markierung, **Websuche** (Standard aus), **Ecken-Verzögerung**.
 
 ## Technik

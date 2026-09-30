@@ -8,7 +8,7 @@
   const HINT_RADIUS = 90; // ab hier leuchtet der Ecken-Hinweis auf
   const MAX_SELECTION = 8000;
 
-  let settings = { autoAsk: true, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
+  let settings = { autoAsk: true, autoCopy: true, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
   let messages = []; // API-Verlauf der aktuellen Unterhaltung
   let port = null;
   let streaming = false;
@@ -82,6 +82,7 @@ button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .a { word-break:break-word; }
 .a p { margin:0 0 .6em; } .a p:last-child { margin-bottom:0; }
 .a ul, .a ol { margin:.2em 0 .6em; padding-left:1.25em; } .a li { margin:.15em 0; }
+.a .li { margin:.1em 0; padding-left:.9em; text-indent:-.9em; }
 .a h1,.a h2,.a h3 { font-size:14px; margin:.7em 0 .3em; }
 .a strong { font-weight:650; }
 .a code { font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:var(--code); padding:.1em .35em; border-radius:5px; }
@@ -95,6 +96,7 @@ button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .dots { display:inline-flex; gap:4px; } .dots i { width:6px; height:6px; border-radius:50%; background:var(--accent); animation: pulse 1s infinite ease-in-out; }
 .dots i:nth-child(2){animation-delay:.15s} .dots i:nth-child(3){animation-delay:.3s}
 @keyframes pulse { 0%,100% { opacity:.25; transform:scale(.8);} 50% { opacity:1; transform:none; } }
+.copied { margin-top:8px; font-size:11.5px; color:#2f9e6b; }
 .sources { margin-top:8px; display:flex; flex-wrap:wrap; gap:5px; }
 .sources a { font-size:11.5px; color:var(--muted); background:var(--quote); padding:2px 8px; border-radius:99px; text-decoration:none; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sources a:hover { color:var(--fg); }
@@ -176,6 +178,11 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
       }
       const h = line.match(/^(#{1,4})\s+(.*)/);
       const ul = line.match(/^\s*[-*•]\s+(.*)/);
+      if (ul) {
+        flushPara(); closeList();
+        out.push(`<div class="li">- ${inline(ul[1])}</div>`);
+        continue;
+      }
       const ol = line.match(/^\s*\d+[.)]\s+(.*)/);
       if (h) { flushPara(); closeList(); out.push(`<h3>${inline(h[2])}</h3>`); }
       else if (ul || ol) {
@@ -188,6 +195,49 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
     }
     flushPara(); closeList();
     return out.join("");
+  }
+
+  // Gedankenstriche raus (Zahlenbereiche wie 1990–2000 bleiben), außer in Code.
+  function clean(text) {
+    if (text.includes("```")) return text;
+    return text
+      .replace(/\s+[–—]\s+/g, ", ")
+      .replace(/(\S)—(\S)/g, "$1, $2")
+      .replace(/(\S) - /g, "$1, ")
+      .replace(/^(\s*)[•*]\s+/gm, "$1- ")
+      .replace(/,\s*([.,;:!?])/g, "$1");
+  }
+  // Reiner Text für die Zwischenablage
+  function plain(text) {
+    return clean(text)
+      .replace(/^\s*```.*$/gm, "")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, "$1$2")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/^#{1,4}\s+/gm, "")
+      .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, "$1 ($2)")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+  const PASTE_KEY = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘V" : "Strg+V";
+
+  function copyAnswer({ auto = false } = {}) {
+    const text = plain(answerText);
+    if (!text) return;
+    const turn = currentTurn;
+    chrome.runtime.sendMessage({ type: "copy", text }, (res) => {
+      if (chrome.runtime.lastError || !res?.ok) {
+        flash("Kopieren fehlgeschlagen");
+        return;
+      }
+      flash(`Kopiert. ${PASTE_KEY} zum Einfügen`);
+      if (auto && turn) {
+        const tag = document.createElement("div");
+        tag.className = "copied";
+        tag.textContent = `✓ In der Zwischenablage, ${PASTE_KEY} fügt ein`;
+        turn.appendChild(tag);
+      }
+    });
   }
 
   // ---------- Panel-Zustand ----------
@@ -224,12 +274,13 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
   function flash(text) {
     toast.textContent = text;
     toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 1100);
+    clearTimeout(flash.t);
+    flash.t = setTimeout(() => toast.classList.remove("show"), 1800);
   }
 
   function renderEmpty() {
     body.innerHTML = settings.hasKey
-      ? `<div class="empty">Text auf der Seite markieren → Antwort erscheint hier.<br>Oder direkt fragen. <kbd>Esc</kbd> schließt, <kbd>Alt</kbd> beim Markieren unterdrückt die Auto-Frage.</div>`
+      ? `<div class="empty">Text markieren → Antwort erscheint hier und liegt sofort in der Zwischenablage.<br>Oder direkt fragen. <kbd>Esc</kbd> schließt, <kbd>Alt</kbd> beim Markieren unterdrückt die Auto-Frage.</div>`
       : `<div class="err">Noch kein API-Key hinterlegt.<br><button class="setkey">API-Key eintragen</button></div>`;
     chips.innerHTML = "";
   }
@@ -252,7 +303,7 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
     if (!currentTurn) return;
     const a = currentTurn.querySelector(".a");
     const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
-    a.innerHTML = md(answerText);
+    a.innerHTML = md(clean(answerText));
     a.classList.toggle("caret", streaming);
     if (nearBottom) body.scrollTop = body.scrollHeight;
   }
@@ -264,9 +315,13 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
     sendBtn.title = on ? "Stoppen" : "Senden";
   }
 
+  const CHIPS = {
+    "Kürzer": "Bitte noch kürzer, in ein bis zwei Sätzen.",
+    "Einfacher": "Bitte einfacher erklären, ohne Fachwörter.",
+    "Mehr Details": "Bitte etwas ausführlicher.",
+  };
   function setChips() {
-    const opts = ["Mehr Details", "Einfacher erklären", "Beispiel"];
-    chips.innerHTML = opts.map((o) => `<button class="chip">${o}</button>`).join("");
+    chips.innerHTML = Object.keys(CHIPS).map((o) => `<button class="chip">${o}</button>`).join("");
   }
 
   // ---------- Anfrage ----------
@@ -323,6 +378,7 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
           currentTurn.appendChild(s);
         }
         setChips();
+        if (settings.autoCopy) copyAnswer({ auto: true });
         myPort.disconnect();
         port = null;
       } else if (m.type === "error") {
@@ -479,15 +535,12 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
     chrome.storage.local.set({ webSearch: settings.webSearch });
     flash(settings.webSearch ? "Websuche an" : "Websuche aus");
   });
-  $(".copy").addEventListener("click", async () => {
-    if (!answerText) return;
-    try { await navigator.clipboard.writeText(answerText); flash("Kopiert"); } catch { flash("Kopieren nicht erlaubt"); }
-  });
+  $(".copy").addEventListener("click", () => copyAnswer());
   root.addEventListener("click", (e) => {
     const t = e.target.closest?.("button");
     if (!t) return;
     if (t.classList.contains("setkey")) chrome.runtime.sendMessage({ type: "open-options" });
-    if (t.classList.contains("chip")) ask(t.textContent, t.textContent, { kind: "user" });
+    if (t.classList.contains("chip")) ask(CHIPS[t.textContent] ?? t.textContent, t.textContent, { kind: "user" });
   });
 
   // ---------- Befehle & Einstellungen ----------

@@ -1,19 +1,56 @@
 {
   "manifest_version": 3,
   "name": "Eckblick AI",
-  "version": "1.0.0",
-  "description": "Claude in der Bildschirmecke: Maus nach unten links oder Text markieren – kompakte Antwort sofort.",
-  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
-  "action": { "default_title": "Eckblick AI (Alt+K)", "default_icon": { "16": "icons/16.png", "32": "icons/32.png" } },
-  "background": { "service_worker": "background.js" },
+  "version": "1.1.0",
+  "description": "Claude in der Bildschirmecke: Text markieren, Antwort landet sofort in der Zwischenablage. Maus nach unten links zeigt sie an.",
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "action": {
+    "default_title": "Eckblick AI (Alt+K)",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "options_page": "options.html",
-  "permissions": ["storage"],
-  "host_permissions": ["https://api.anthropic.com/*"],
+  "permissions": [
+    "storage",
+    "offscreen",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://api.anthropic.com/*"
+  ],
   "content_scripts": [
-    { "matches": ["<all_urls>"], "js": ["content.js"], "run_at": "document_idle" }
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
   ],
   "commands": {
-    "toggle-panel": { "suggested_key": { "default": "Alt+K" }, "description": "Panel öffnen/schließen" },
-    "ask-selection": { "suggested_key": { "default": "Alt+J" }, "description": "Markierten Text fragen (auch wenn Auto-Frage aus ist)" }
+    "toggle-panel": {
+      "suggested_key": {
+        "default": "Alt+K"
+      },
+      "description": "Panel öffnen/schließen"
+    },
+    "ask-selection": {
+      "suggested_key": {
+        "default": "Alt+J"
+      },
+      "description": "Markierten Text fragen (auch wenn Auto-Frage aus ist)"
+    }
   }
 }

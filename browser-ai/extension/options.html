@@ -64,14 +64,18 @@
     <div class="row">
       <label for="language"><b>Antwortsprache</b></label>
       <select id="language">
+        <option value="de">Deutsch (Deutschland)</option>
         <option value="auto">Wie die Frage</option>
-        <option value="de">Immer Deutsch</option>
-        <option value="en">Immer Englisch</option>
+        <option value="en">Englisch</option>
       </select>
     </div>
   </section>
 
   <section>
+    <div class="row">
+      <label for="autoCopy"><b>Antwort automatisch kopieren</b><small>Jede fertige Antwort liegt sofort in der Zwischenablage. Einfach einfügen, das Panel musst du nicht anschauen.</small></label>
+      <label class="switch"><input id="autoCopy" type="checkbox"><span></span></label>
+    </div>
     <div class="row">
       <label for="autoAsk"><b>Auto-Frage beim Markieren</b><small>Markierter Text wird sofort gefragt. <kbd>Alt</kbd> beim Markieren gedrückt halten = unterdrücken.</small></label>
       <label class="switch"><input id="autoAsk" type="checkbox"><span></span></label>
@@ -95,7 +99,7 @@
       <b>So nutzt du es</b>
       <ul>
         <li><b>Maus in die Ecke unten links</b> → Panel erscheint. Maus weg → es verschwindet.</li>
-        <li><b>Text markieren</b> → Frage startet automatisch, Antwort streamt ins Panel.</li>
+        <li><b>Text markieren</b> → Frage startet automatisch. Sobald die Antwort fertig ist (grüner Haken am Icon), einfach <kbd>⌘</kbd>+<kbd>V</kbd> bzw. <kbd>Strg</kbd>+<kbd>V</kbd>.</li>
         <li><kbd>Alt</kbd>+<kbd>K</kbd> Panel öffnen/schließen · <kbd>Alt</kbd>+<kbd>J</kbd> Markierung fragen · <kbd>Esc</kbd> stoppen/schließen</li>
         <li>📌 Anheften hält das Panel offen, Folgefragen unten im Feld.</li>
       </ul>

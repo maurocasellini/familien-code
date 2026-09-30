@@ -9,7 +9,8 @@ const DEFAULTS = {
   model: "claude-opus-5-5",
   autoAsk: true,
   webSearch: false,
-  language: "auto",
+  language: "de",
+  autoCopy: true,
   minChars: 3,
   cornerDelay: 120,
 };
@@ -22,29 +23,35 @@ const MODEL_INFO = {
 
 function systemPrompt(language, page) {
   const lang =
-    language === "de"
-      ? "Antworte immer auf Deutsch."
-      : language === "en"
-        ? "Always answer in English."
-        : "Antworte in der Sprache der Frage; bei reinem Markierungstext ohne Frage auf Deutsch.";
+    language === "en"
+      ? "Schreibe auf Englisch."
+      : language === "auto"
+        ? "Schreibe in der Sprache der Frage. Bei deutschem oder unklarem Text schreibst du Deutsch nach deutscher Rechtschreibung (Deutschland, also mit ß)."
+        : "Schreibe immer auf Deutsch nach deutscher Rechtschreibung (Deutschland, also mit ß und deutschen Anführungszeichen).";
 
-  return `Du bist ein Sofort-Assistent, der in einem kleinen Panel in der Bildschirmecke des Browsers erscheint. Der Nutzer liest gerade eine Webseite und will in Sekunden verstehen, nicht lesen.
+  return `Du beantwortest Fragen, die jemand beim Lesen im Browser markiert. Deine Antwort wird automatisch in die Zwischenablage kopiert und direkt irgendwo eingefügt, zum Beispiel in eine Mail, ein Dokument oder einen Chat. Sie muss also ohne Nachbearbeitung passen.
 
-Stil:
-- Kernaussage im ersten Satz. Keine Einleitung, keine Wiederholung der Frage, keine Floskeln, kein Nachfragen am Ende.
-- Standardlänge: 40–120 Wörter. Länger nur, wenn der Nutzer ausdrücklich Details verlangt.
-- Markdown sparsam: **fett** für Schlüsselbegriffe, kurze Bullet-Listen wenn sie das Scannen erleichtern, \`code\` für Code. Keine Tabellen, keine Überschriften über ###.
-- ${lang}
+So schreibst du:
+Kurz, klar und sprachlich einfach, wie ein kluger Mensch, der es jemandem schnell erklärt. Normalerweise zwei bis fünf Sätze. Nur mehr, wenn ausdrücklich nach Details gefragt wird. Die Antwort steht im ersten Satz. Keine Einleitung, keine Wiederholung der Frage, kein Fazit, keine Rückfrage am Ende.
+Schlichter Text ohne Markdown: keine Überschriften, kein Fettdruck, keine Sternchen, keine Emojis, keine Nummerierungen. Meist reicht Fließtext, bei Bedarf in zwei oder drei kurze Absätze geteilt.
+Wenn eine Aufzählung wirklich klarer ist, beginnt jede Zeile mit einem einfachen Bindestrich und einem Leerzeichen, genau so:
+- erster Punkt
+- zweiter Punkt
+Nie andere Aufzählungszeichen wie • oder *.
+Innerhalb von Sätzen keine Gedankenstriche (– oder —) und keine Bindestriche als Satzzeichen. Nutze stattdessen Punkt, Komma oder Doppelpunkt.
+Kein typischer KI-Stil: keine Floskeln wie „Gerne“, „Kurz gesagt“, „Wichtig ist“, „Es ist erwähnenswert“, keine Übertreibungen, keine Füllwörter, keine Dreierlisten aus Gewohnheit.
+${lang}
 
-Wenn nur markierter Text ohne explizite Frage kommt, erkenne die Absicht:
-- Einzelner Begriff/Name → was es ist + warum es hier relevant ist.
-- Fremdsprachiger Text → Übersetzung + ggf. Nuance.
-- Code / Fehlermeldung → was es tut bzw. Ursache + Fix.
-- Behauptung / Zahl → kurze Einordnung, ob plausibel, mit Begründung.
-- Längerer Absatz → Kernaussage in 2–3 Bullets.
-- Mathe / Formel → Ergebnis bzw. Bedeutung.
+Was du lieferst, hängt vom markierten Text ab:
+Eine Frage beantwortest du direkt.
+Ein Begriff oder Name: was es ist und warum es hier eine Rolle spielt.
+Fremdsprachiger Text: nur die Übersetzung, sonst nichts.
+Code oder Fehlermeldung: Ursache und Lösung in einfachen Worten. Code nur, wenn er zur Lösung nötig ist, dann als reiner Codeblock.
+Eine Behauptung oder Zahl: ob sie stimmt und warum.
+Ein längerer Absatz: die Kernaussage in wenigen Sätzen.
+Eine Rechnung: das Ergebnis mit einem Satz zur Erklärung.
 
-Kontext – aktuelle Seite: "${page?.title ?? ""}" (${page?.url ?? ""})`;
+Die Person liest gerade: "${page?.title ?? ""}" (${page?.url ?? ""})`;
 }
 
 async function getSettings() {
@@ -145,7 +152,44 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+// ---------- Zwischenablage ----------
+// Service-Worker haben keinen Clipboard-Zugriff; ein Offscreen-Dokument
+// kopiert zuverlässig, auch ohne Klick und ohne dass die Seite Fokus hat.
+let offscreenReady = null;
+function ensureOffscreen() {
+  offscreenReady ??= (async () => {
+    if (await chrome.offscreen.hasDocument()) return;
+    await chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: ["CLIPBOARD"],
+      justification: "Antwort automatisch in die Zwischenablage kopieren",
+    });
+  })().catch((err) => {
+    offscreenReady = null;
+    throw err;
+  });
+  return offscreenReady;
+}
+
+async function copyToClipboard(text, tabId) {
+  await ensureOffscreen();
+  const res = await chrome.runtime.sendMessage({ target: "offscreen", type: "copy", text });
+  if (!res?.ok) throw new Error("copy failed");
+  if (tabId != null) {
+    chrome.action.setBadgeBackgroundColor({ color: "#2f9e6b", tabId });
+    chrome.action.setBadgeText({ text: "✓", tabId });
+    setTimeout(() => chrome.action.setBadgeText({ text: "", tabId }), 2500);
+  }
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.target === "offscreen") return;
+  if (msg?.type === "copy") {
+    copyToClipboard(msg.text, sender.tab?.id)
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
   if (msg?.type === "open-options") chrome.runtime.openOptionsPage();
   if (msg?.type === "test-key") {
     const client = new Anthropic({ apiKey: msg.apiKey, dangerouslyAllowBrowser: true });

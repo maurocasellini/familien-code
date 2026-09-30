@@ -3,7 +3,8 @@ const DEFAULTS = {
   model: "claude-opus-5-5",
   autoAsk: true,
   webSearch: false,
-  language: "auto",
+  language: "de",
+  autoCopy: true,
   minChars: 3,
   cornerDelay: 120,
 };
