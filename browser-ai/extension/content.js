@@ -182,11 +182,11 @@
 
   root.innerHTML = `
 <style>
-:host { --halo: rgba(255,255,255,.95); --bg: rgba(255,255,255,.03); --fg:#2b2d30; --faint:#8a8f94; --line:rgba(0,0,0,.035);
+:host { --halo: rgba(255,255,255,.95); --bg: rgba(255,255,255,.03); --fg:#8b9096; --faint:#b3b7bb; --line:rgba(0,0,0,.035);
   --accent:#5f6368; --soft:rgba(0,0,0,.04); --code:rgba(0,0,0,.04);
   --shadow:none; }
 /* Farbe folgt der Webseite (nicht dem System): helle Seite → weiß, dunkle Seite → dunkel */
-:host([data-theme="dark"]) { --halo: rgba(0,0,0,.9); --bg: rgba(30,31,34,.03); --fg:#e8eaed; --faint:#9aa0a6; --line:rgba(255,255,255,.045);
+:host([data-theme="dark"]) { --halo: rgba(0,0,0,.9); --bg: rgba(30,31,34,.03); --fg:#8e9399; --faint:#5f6368; --line:rgba(255,255,255,.045);
   --accent:#dadce0; --soft:rgba(255,255,255,.06); --code:rgba(255,255,255,.06);
   --shadow:none; }
 * { box-sizing:border-box; }
@@ -234,8 +234,8 @@ button:focus-visible { outline:1px solid var(--accent); outline-offset:1px; }
 .a p { margin:0 0 .5em; } .a p:last-child { margin-bottom:0; }
 .a ul, .a ol { margin:.2em 0 .5em; padding-left:1.2em; } .a li { margin:.1em 0; }
 .a .li { margin:.1em 0; padding-left:.8em; text-indent:-.8em; }
-.a h1,.a h2,.a h3 { font-size:12.5px; font-weight:600; margin:.6em 0 .2em; }
-.a strong { font-weight:600; }
+.a h1,.a h2,.a h3 { font-size:12.5px; font-weight:500; margin:.6em 0 .2em; }
+.a strong { font-weight:500; }
 .a code { font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:var(--code); padding:.05em .3em; border-radius:4px; }
 .a pre { background:var(--code); padding:7px 9px; border-radius:7px; overflow:auto; margin:.3em 0 .6em; }
 .a pre code { background:none; padding:0; }
