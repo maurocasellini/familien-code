@@ -7,11 +7,10 @@ import Anthropic from "@anthropic-ai/sdk";
 const DEFAULTS = {
   apiKey: "",
   model: "claude-opus-5-5",
-  autoAsk: true,
+  trigger: "shortcut",
   webSearch: false,
   language: "de",
-  autoCopy: true,
-  length: "short",
+  autoCopy: false,
   minChars: 3,
   cornerDelay: 120,
 };
@@ -22,14 +21,8 @@ const MODEL_INFO = {
   "claude-haiku-4-5": { effort: false, fallbacks: false, webSearch: "web_search_20250305" },
 };
 
-const LENGTH = {
-  xs: { words: 40, multi: 60 },
-  short: { words: 70, multi: 110 },
-  long: { words: 160, multi: 220 },
-};
-
-function systemPrompt(language, page, length) {
-  const len = LENGTH[length] ?? LENGTH.short;
+// Bleibt pro Einstellung gleich, damit der Prompt-Cache (inkl. Wissensbasis) greift.
+function systemPrompt(language, hasDocs) {
   const lang =
     language === "en"
       ? "Schreibe auf Englisch."
@@ -42,12 +35,11 @@ function systemPrompt(language, page, length) {
 So schreibst du:
 Kurz, klar und sprachlich einfach, wie ein kluger Mensch, der es jemandem in einer Minute erklärt. Die Antwort steht im ersten Satz. Keine Einleitung, keine Wiederholung der Frage, kein Fazit, keine Rückfrage am Ende.
 
-Länge, streng:
-Höchstens ${len.words} Wörter. Bei einer Frage mit mehreren Teilfragen oder Aspekten höchstens ${len.multi} Wörter insgesamt.
-Diese Grenze gilt immer, auch wenn die Frage lang, ausführlich oder „strukturiert“ formuliert ist oder viele Punkte aufzählt. Eine ausführliche Frage ist keine Bitte um eine lange Antwort.
-Bei mehreren Teilfragen: ein kurzer Einleitungssatz mit dem Kern, dann pro Teilfrage genau eine Zeile im Format „- Stichwort: Aussage in ein bis zwei kurzen Sätzen“.
-Lass Beispiele, Zahlen und Nebenaspekte weg, wenn sie für die Kernaussage nicht nötig sind. Lieber eine klare Aussage als drei halbe.
-Nur wenn die Person danach ausdrücklich „ausführlicher“ oder „mehr Details“ schreibt, darfst du die Grenze verdoppeln.
+Länge:
+So kompakt wie möglich. Einfache Fragen beantwortest du in einem oder zwei Sätzen. Auch komplexe Fragen mit vielen Teilaspekten höchstens etwa 500 Zeichen, egal wie lang oder „strukturiert“ die Frage formuliert ist. Eine ausführliche Frage ist keine Bitte um eine lange Antwort.
+Bei mehreren Teilfragen: ein kurzer Satz mit dem Kern, dann pro Teilfrage eine Zeile im Format „- Stichwort: Aussage“.
+Lass Beispiele, Zahlen und Nebenaspekte weg, wenn die Kernaussage ohne sie steht.
+Nur wenn die Person danach ausdrücklich „ausführlicher“ oder „mehr Details“ schreibt, darfst du länger werden.
 Schlichter Text ohne Markdown: keine Überschriften, kein Fettdruck, keine Sternchen, keine Emojis, keine Nummerierungen. Meist reicht Fließtext, bei Bedarf in zwei oder drei kurze Absätze geteilt.
 Wenn eine Aufzählung wirklich klarer ist, beginnt jede Zeile mit einem einfachen Bindestrich und einem Leerzeichen, genau so:
 - erster Punkt
@@ -64,9 +56,40 @@ Fremdsprachiger Text: nur die Übersetzung, sonst nichts.
 Code oder Fehlermeldung: Ursache und Lösung in einfachen Worten. Code nur, wenn er zur Lösung nötig ist, dann als reiner Codeblock.
 Eine Behauptung oder Zahl: ob sie stimmt und warum.
 Ein längerer Absatz: die Kernaussage in wenigen Sätzen.
-Eine Rechnung: das Ergebnis mit einem Satz zur Erklärung.
+Eine Rechnung: das Ergebnis mit einem Satz zur Erklärung.${
+    hasDocs
+      ? `
 
-Die Person liest gerade: "${page?.title ?? ""}" (${page?.url ?? ""})`;
+Wissensbasis:
+Am Anfang der Unterhaltung liegen Dokumente der Person bei (Präsentationen, Zusammenfassungen, Unterlagen). Wenn sie zur Frage etwas enthalten, stützt du dich zuerst darauf und übernimmst deren Begriffe und Sichtweise. Nur was dort fehlt, ergänzt du aus deinem Wissen. Nenne die Quelle nicht im Text, sie wird separat angezeigt.`
+      : ""
+  }`;
+}
+
+// Aktive Dokumente der Wissensbasis als Content-Blöcke (mit Quellenangaben und
+// 1-Stunden-Cache, damit Folgefragen günstig und schnell sind).
+async function knowledgeBlocks() {
+  const { docs = [] } = await chrome.storage.local.get("docs");
+  const blocks = docs
+    .filter((d) => d.enabled)
+    .map((d) => ({
+      type: "document",
+      source: { type: "file", file_id: d.fileId },
+      title: d.name,
+      citations: { enabled: true },
+    }));
+  if (blocks.length) blocks.at(-1).cache_control = { type: "ephemeral", ttl: "1h" };
+  return blocks;
+}
+
+function citationLabel(c) {
+  const title = c.document_title ?? "Dokument";
+  if (c.type === "page_location") {
+    const from = c.start_page_number;
+    const to = c.end_page_number - 1;
+    return to > from ? `${title}, S. ${from}–${to}` : `${title}, S. ${from}`;
+  }
+  return title;
 }
 
 async function getSettings() {
@@ -84,12 +107,25 @@ async function runQuery(port, msg) {
   const info = MODEL_INFO[settings.model] ?? MODEL_INFO["claude-opus-5-5"];
   const client = new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
 
+  // Neue Unterhaltung: Wissensbasis vor die erste Frage hängen. Das Content-Script
+  // übernimmt diese erste Nachricht, damit der Verlauf danach unverändert bleibt.
+  const messages = msg.messages;
+  let hasDocs = messages[0]?.content?.[0]?.type === "document";
+  if (messages.length === 1 && typeof messages[0].content === "string") {
+    const docs = await knowledgeBlocks();
+    if (docs.length) {
+      messages[0] = { role: "user", content: [...docs, { type: "text", text: messages[0].content }] };
+      port.postMessage({ type: "first-user", message: messages[0] });
+      hasDocs = true;
+    }
+  }
+
   const useWeb = msg.webSearch ?? settings.webSearch;
   const params = {
     model: settings.model,
     max_tokens: 8000,
-    system: systemPrompt(settings.language, msg.page, settings.length),
-    messages: msg.messages,
+    system: systemPrompt(settings.language, hasDocs),
+    messages,
   };
   // Schnelle, knappe Antworten: niedrige Effort-Stufe (Haiku kennt kein effort).
   if (info.effort) params.output_config = { effort: "low" };
@@ -129,11 +165,25 @@ async function runQuery(port, msg) {
     return;
   }
 
+  // Quellen aus der Wissensbasis (Zitate) und aus der Websuche
+  const docSources = new Set();
+  for (const block of final.content) {
+    if (block.type !== "text" || !block.citations) continue;
+    for (const c of block.citations) {
+      if (c.type === "page_location" || c.type === "char_location" || c.type === "content_block_location") {
+        docSources.add(citationLabel(c));
+      }
+    }
+  }
+
   port.postMessage({
     type: "done",
     content: final.content,
     truncated: final.stop_reason === "max_tokens",
-    sources: [...sources].slice(0, 4).map(([url, title]) => ({ url, title })),
+    sources: [
+      ...[...docSources].slice(0, 4).map((title) => ({ title })),
+      ...[...sources].slice(0, 4).map(([url, title]) => ({ url, title })),
+    ],
   });
 }
 
@@ -141,6 +191,9 @@ function describeError(err) {
   if (err instanceof Anthropic.AuthenticationError) return { code: "no-key", text: "API-Key ungültig." };
   if (err instanceof Anthropic.PermissionDeniedError) return { text: "Kein Zugriff auf dieses Modell mit diesem Key." };
   if (err instanceof Anthropic.RateLimitError) return { text: "Rate-Limit erreicht – kurz warten." };
+  if ((err instanceof Anthropic.NotFoundError || err instanceof Anthropic.BadRequestError) && /file/i.test(err.message)) {
+    return { text: "Ein Dokument der Wissensbasis ist nicht mehr verfügbar. Bitte in den Einstellungen entfernen und neu hochladen." };
+  }
   if (err instanceof Anthropic.BadRequestError) return { text: `Anfrage abgelehnt: ${err.message}` };
   if (err instanceof Anthropic.APIUserAbortError) return null;
   if (err instanceof Anthropic.APIConnectionError) return { text: "Keine Verbindung zur API." };
@@ -190,11 +243,13 @@ async function copyToClipboard(text, tabId) {
   await ensureOffscreen();
   const res = await chrome.runtime.sendMessage({ target: "offscreen", type: "copy", text });
   if (!res?.ok) throw new Error("copy failed");
-  if (tabId != null) {
-    chrome.action.setBadgeBackgroundColor({ color: "#2f9e6b", tabId });
-    chrome.action.setBadgeText({ text: "✓", tabId });
-    setTimeout(() => chrome.action.setBadgeText({ text: "", tabId }), 2500);
-  }
+  if (tabId != null) showBadge(tabId);
+}
+
+function showBadge(tabId) {
+  chrome.action.setBadgeBackgroundColor({ color: "#2f9e6b", tabId });
+  chrome.action.setBadgeText({ text: "✓", tabId });
+  setTimeout(() => chrome.action.setBadgeText({ text: "", tabId }).catch(() => {}), 2500);
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -205,6 +260,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .catch(() => sendResponse({ ok: false }));
     return true;
   }
+  const tabId = sender.tab?.id;
+  if (msg?.type === "frame-ask" && tabId != null) {
+    chrome.tabs.sendMessage(tabId, { type: "ask-text", text: msg.text, surrounding: msg.surrounding }, { frameId: 0 }).catch(() => {});
+  }
+  if (msg?.type === "insert-answer" && tabId != null) {
+    chrome.tabs.sendMessage(tabId, { type: "insert-text", text: msg.text }).catch(() => {});
+  }
+  if (msg?.type === "answer-ready" && tabId != null) showBadge(tabId);
   if (msg?.type === "open-options") chrome.runtime.openOptionsPage();
   if (msg?.type === "test-key") {
     const client = new Anthropic({ apiKey: msg.apiKey, dangerouslyAllowBrowser: true });
@@ -215,7 +278,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg?.type === "get-settings") {
-    getSettings().then(({ apiKey, ...rest }) => sendResponse({ ...rest, hasKey: Boolean(apiKey) }));
+    Promise.all([getSettings(), chrome.storage.local.get("docs")]).then(([{ apiKey, ...rest }, { docs = [] }]) =>
+      sendResponse({ ...rest, hasKey: Boolean(apiKey), docCount: docs.filter((d) => d.enabled).length }),
+    );
     return true;
   }
 });
@@ -223,14 +288,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 chrome.commands.onCommand.addListener(async (command, tab) => {
   const target = tab ?? (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
   if (!target?.id) return;
-  chrome.tabs.sendMessage(target.id, { type: command }).catch(() => {});
+  // ask-selection geht an alle Frames (die Markierung kann in einem iframe liegen),
+  // Panel-Befehle nur an den obersten Frame.
+  const opts = command === "ask-selection" ? {} : { frameId: 0 };
+  chrome.tabs.sendMessage(target.id, { type: command }, opts).catch(() => {});
 });
 
 chrome.action.onClicked.addListener((tab) => {
   if (tab?.id) chrome.tabs.sendMessage(tab.id, { type: "toggle-panel" }).catch(() => chrome.runtime.openOptionsPage());
 });
 
+// Nach Installation oder Update das Content-Script in alle offenen Tabs laden,
+// sonst reagieren bereits offene Seiten erst nach einem Neuladen.
+async function injectIntoOpenTabs() {
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*", "file:///*"] });
+  await Promise.all(
+    tabs.map((tab) =>
+      chrome.scripting
+        .executeScript({ target: { tabId: tab.id, allFrames: true }, files: ["content.js"] })
+        .catch(() => {}),
+    ),
+  );
+}
+
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+  injectIntoOpenTabs();
   const { apiKey } = await chrome.storage.local.get("apiKey");
   if (reason === "install" && !apiKey) chrome.runtime.openOptionsPage();
 });

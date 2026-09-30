@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Eckblick AI – Einstellungen</title>
 <style>
-  :root { --bg:#f6f5f2; --card:#fff; --fg:#1b1d22; --muted:#6b7080; --line:#e6e4df; --accent:#d97757; --ok:#2f9e6b; --bad:#d4493b; color-scheme: light dark; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#16171b; --card:#1f2026; --fg:#ecedf0; --muted:#9a9eab; --line:#2d2e36; --accent:#e58b6b; } }
+  :root { --bg:#f6f7f8; --card:#fff; --fg:#202124; --muted:#6f7378; --line:#e3e5e8; --accent:#5f6368; --ok:#2f8a5b; --bad:#c5503f; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1f2023; --card:#292a2d; --fg:#e3e3e3; --muted:#9aa0a6; --line:#3a3b3f; --accent:#9aa0a6; } }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   main { max-width:620px; margin:0 auto; padding:40px 16px 60px; }
@@ -36,6 +36,18 @@
   kbd { font:12px ui-monospace, monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px; background:var(--bg); }
   ul { padding-left:1.2em; margin:10px 0; } li { margin:4px 0; }
   a { color:var(--accent); }
+  h2 { font-size:15px; margin:14px 0 2px; }
+  .drop { margin:10px 0 4px; border:1.5px dashed var(--line); border-radius:11px; padding:18px; text-align:center; color:var(--muted); font-size:13.5px; cursor:pointer; transition:.15s; }
+  .drop:hover, .drop.over { border-color:var(--accent); color:var(--fg); }
+  #kbList { display:flex; flex-direction:column; }
+  .doc { display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); }
+  .doc:last-child { border-bottom:0; }
+  .docname { flex:1; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .docname small { display:block; color:var(--muted); font-size:12px; }
+  .doc button { padding:4px 10px; font-size:12.5px; font-weight:500; }
+  .switch.small { width:34px; height:20px; } .switch.small span::after { width:14px; height:14px; }
+  .switch.small input:checked + span::after { transform:translateX(14px); }
+  #kbStatus, #kbSummary { font-size:13px; color:var(--muted); min-height:1.3em; }
 </style>
 </head>
 <body>
@@ -62,14 +74,6 @@
       </select>
     </div>
     <div class="row">
-      <label for="length"><b>Antwortlänge</b><small>Gilt auch für lange, ausführliche Fragen. „Mehr Details“ im Panel verdoppelt sie einmalig.</small></label>
-      <select id="length">
-        <option value="xs">Sehr kurz (max. 40 Wörter)</option>
-        <option value="short">Kurz (max. 70 Wörter)</option>
-        <option value="long">Ausführlicher (max. 160 Wörter)</option>
-      </select>
-    </div>
-    <div class="row">
       <label for="language"><b>Antwortsprache</b></label>
       <select id="language">
         <option value="de">Deutsch (Deutschland)</option>
@@ -81,12 +85,16 @@
 
   <section>
     <div class="row">
-      <label for="autoCopy"><b>Antwort automatisch kopieren</b><small>Jede fertige Antwort liegt sofort in der Zwischenablage. Einfach einfügen, das Panel musst du nicht anschauen.</small></label>
+      <label for="autoCopy"><b>Antwort zusätzlich in die Zwischenablage</b><small>Praktisch, wenn du außerhalb des Browsers einfügst (Word, Mail-App). Überschreibt dann deine Zwischenablage.</small></label>
       <label class="switch"><input id="autoCopy" type="checkbox"><span></span></label>
     </div>
     <div class="row">
-      <label for="autoAsk"><b>Auto-Frage beim Markieren</b><small>Markierter Text wird sofort gefragt. <kbd>Alt</kbd> beim Markieren gedrückt halten = unterdrücken.</small></label>
-      <label class="switch"><input id="autoAsk" type="checkbox"><span></span></label>
+      <label for="trigger"><b>Frage auslösen mit</b><small>⌘C und ⌘V bleiben beim Standard ganz normal.</small></label>
+      <select id="trigger">
+        <option value="shortcut">Markieren + ⌃C (Standard)</option>
+        <option value="copy">Markieren + ⌘C</option>
+        <option value="select">Nur markieren (sofort)</option>
+      </select>
     </div>
     <div class="row">
       <label for="minChars"><b>Mindestlänge der Markierung</b><small>Kürzere Markierungen werden ignoriert.</small></label>
@@ -104,14 +112,26 @@
 
   <section>
     <div class="row col">
+      <h2>Wissensbasis</h2>
+      <span class="hint">Eigene Unterlagen, auf die sich die Antworten zuerst stützen: Präsentationen, Summaries, Skripte. Das Panel zeigt, aus welchem Dokument (und von welcher Seite) eine Antwort stammt. Die Dateien liegen in deinem Anthropic-API-Konto. Für Präsentationen am besten <b>PDF</b> nehmen, dann sieht Claude auch Grafiken und Layout.</span>
+      <div id="kbDrop" class="drop">Dateien hierher ziehen oder klicken<br><small>PDF, PPTX, DOCX, TXT, MD, CSV</small></div>
+      <input id="kbFile" type="file" multiple accept=".pdf,.pptx,.docx,.txt,.md,.markdown,.csv,.json,.html,.htm" hidden>
+      <div id="kbStatus"></div>
+      <div id="kbList"></div>
+      <div id="kbSummary"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="row col">
       <b>So nutzt du es</b>
       <ul>
-        <li><b>Maus in die Ecke unten links</b> → Panel erscheint. Maus weg → es verschwindet.</li>
-        <li><b>Text markieren</b> → Frage startet automatisch. Sobald die Antwort fertig ist (grüner Haken am Icon), einfach <kbd>⌘</kbd>+<kbd>V</kbd> bzw. <kbd>Strg</kbd>+<kbd>V</kbd>.</li>
-        <li><kbd>Alt</kbd>+<kbd>K</kbd> Panel öffnen/schließen · <kbd>Alt</kbd>+<kbd>J</kbd> Markierung fragen · <kbd>Esc</kbd> stoppen/schließen</li>
-        <li>📌 Anheften hält das Panel offen, Folgefragen unten im Feld.</li>
+        <li><b>Text markieren + <kbd>⌃</kbd><kbd>C</kbd></b> → Frage geht an die KI (auch Text in Eingabefeldern).</li>
+        <li><b><kbd>⌃</kbd><kbd>V</kbd></b> → Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, kommt sie, sobald sie fertig ist.</li>
+        <li><b>Maus in die Ecke unten links</b> oder <kbd>⌃</kbd><kbd>⇧</kbd><kbd>K</kbd> → Panel mit der Antwort, Folgefragen möglich.</li>
+        <li><kbd>Esc</kbd> stoppt bzw. schließt, 📌 hält das Panel offen.</li>
       </ul>
-      <span class="hint">Tastenkürzel ändern: <code>chrome://extensions/shortcuts</code></span>
+      <span class="hint">Tastenkürzel prüfen oder ändern: <code>chrome://extensions/shortcuts</code> (Windows: Alt+Shift statt ⌃). ⌃ ist die Control-Taste, nicht ⌘.</span>
     </div>
   </section>
 </main>

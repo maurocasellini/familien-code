@@ -4,31 +4,37 @@ Browser-Erweiterung (Chrome, Edge, Brave, Arc – alle Chromium-Browser). Die KI
 
 | Aktion | Was passiert |
 |---|---|
-| **Maus in die Ecke unten links** | Panel gleitet auf, Eingabefeld hat Fokus. Maus wegziehen → Panel verschwindet. |
-| **Text markieren** | Markierung wird sofort als Frage geschickt. Die fertige Antwort liegt **automatisch in der Zwischenablage**: einfach ⌘V bzw. Strg+V. Das Panel kann man anschauen, muss man aber nicht. Ein grüner Haken am Icon zeigt, dass kopiert wurde. |
-| <kbd>Alt</kbd> beim Markieren | Auto-Frage unterdrücken (z. B. wenn du nur kopieren willst). |
-| <kbd>Alt</kbd>+<kbd>K</kbd> | Panel öffnen/schließen |
-| <kbd>Alt</kbd>+<kbd>J</kbd> | Aktuelle Markierung fragen (auch wenn Auto-Frage aus ist) |
+| **Text markieren + ⌃C** (Control, nicht ⌘) | Frage geht an die KI. Funktioniert auch in Eingabefeldern und eingebetteten Rahmen (iframes). |
+| **⌃V** | Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, wird sie eingefügt, sobald sie fertig ist. Ist kein Textfeld aktiv, landet sie in der Zwischenablage. |
+| **Maus in die Ecke unten links** oder **⌃⇧K** | Dezentes Panel mit der Antwort, Quellen und Folgefragen. Maus weg → es verschwindet. |
+| ⌘C / ⌘V | bleiben ganz normal. |
 | <kbd>Esc</kbd> | Antwort stoppen bzw. Panel schließen |
-| 📌 / 🌐 | Panel anheften · Websuche an/aus |
-| Chips unter der Antwort | „Kürzer“, „Einfacher“, „Mehr Details“ als Ein-Klick-Folgefragen |
 
-Antworten sind **einfügefertig**: kurz, sprachlich einfach, deutsche Rechtschreibung (Deutschland), kein KI-Stil, keine Gedankenstriche, kein Markdown. Aufzählungen nur wenn sinnvoll, und dann als schlichte Zeilen mit `- ` am Anfang. Zur Sicherheit werden Gedankenstriche und Formatierung vor dem Kopieren zusätzlich herausgefiltert. Die Absicht der Markierung wird erkannt: Begriff wird erklärt, Fremdsprache nur übersetzt, Code/Fehler mit Lösung, Behauptung eingeordnet, langer Absatz auf den Kern gebracht.
+Windows: Alt+Shift+C / Alt+Shift+V / Alt+Shift+K. Ändern unter `chrome://extensions/shortcuts`. In den Einstellungen kann man den Auslöser auch auf „Markieren + ⌘C“ oder „Nur markieren“ umstellen.
+
+Antworten sind **einfügefertig**: so kompakt wie möglich (auch komplexe Fragen höchstens etwa 500 Zeichen), sprachlich einfach, deutsche Rechtschreibung (Deutschland), kein KI-Stil, keine Gedankenstriche, kein Markdown. Aufzählungen nur als schlichte Zeilen mit `- `.
+
+## Wissensbasis (eigene Unterlagen)
+
+In den Einstellungen Dateien hochladen: **PDF, PPTX, DOCX, TXT, MD, CSV**. Jede neue Frage bekommt die aktiven Dokumente als Kontext mit; Claude stützt sich zuerst darauf. Das Panel zeigt als kleine Marke, aus welchem Dokument und von welcher Seite die Antwort stammt (z. B. „📄 Strategie.pdf, S. 4“).
+
+- Präsentationen am besten als **PDF** exportieren, dann sieht Claude auch Grafiken und Layout. PPTX/DOCX werden lokal in Text umgewandelt (inkl. Sprechernotizen).
+- Die Dateien liegen in deinem Anthropic-API-Konto (Files API), nicht auf einem fremden Server.
+- Dokumente einzeln an- und ausschalten. Die Einstellungsseite zeigt, wie viele Tokens pro neuer Frage anfallen. Dank Prompt-Caching (1 Stunde) sind Folgefragen deutlich günstiger und schneller.
 
 ## Installation (2 Minuten)
 
 1. `chrome://extensions` öffnen, oben rechts **Entwicklermodus** einschalten.
 2. **Entpackte Erweiterung laden** → den Ordner `browser-ai/extension` wählen.
 3. Die Einstellungsseite öffnet sich automatisch: **Anthropic API-Key** eintragen (von [console.anthropic.com](https://console.anthropic.com/settings/keys)) → **Testen**.
-4. Tipp: Erweiterung in der Toolbar anpinnen. Schon offene Tabs einmal neu laden.
+4. Tipp: Erweiterung in der Toolbar anpinnen. Offene Tabs funktionieren sofort, ohne Neuladen.
 
 ## Einstellungen
 
 - **Modell:** Claude Opus 5.5 (Standard, beste Qualität), Sonnet 5.5, Haiku 4.5 (am schnellsten/günstigsten).
-- **Antwort automatisch kopieren** (Standard an).
-- **Antwortlänge:** sehr kurz (40 Wörter) / kurz (70, Standard) / ausführlicher (160). Gilt auch bei langen, strukturierten Fragen.
+- **Antwort zusätzlich in die Zwischenablage** (Standard aus; praktisch zum Einfügen außerhalb des Browsers).
 - **Antwortsprache:** Deutsch (Deutschland, Standard) / wie die Frage / Englisch.
-- **Auto-Frage**, **Mindestlänge** der Markierung, **Websuche** (Standard aus), **Ecken-Verzögerung**.
+- **Auslöser** (⌃C, ⌘C oder nur markieren), **Mindestlänge** der Markierung, **Websuche** (Standard aus), **Ecken-Verzögerung**.
 
 ## Technik
 
@@ -46,6 +52,6 @@ npm run build        # bündelt src/background.js → extension/background.js
 npm run zip          # optional: eckblick-ai.zip zum Weitergeben
 ```
 
-`extension/background.js` ist gebaut und eingecheckt, damit „Entpackt laden“ ohne Build funktioniert. Nach Änderungen an `src/background.js` neu bauen und in `chrome://extensions` auf ↻ klicken.
+`extension/background.js` und `extension/options.js` sind gebaut und eingecheckt, damit „Entpackt laden“ ohne Build funktioniert. Nach Änderungen in `src/` neu bauen und in `chrome://extensions` auf ↻ klicken.
 
 Icons neu erzeugen: `python3 make-icons.py`.

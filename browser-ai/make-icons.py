@@ -17,7 +17,7 @@ def png(path, size):
                     dx = max(abs(u - .5) - (.5 - r), 0); dy = max(abs(v - .5) - (.5 - r), 0)
                     if math.hypot(dx, dy) > r: continue
                     t = (u + v) / 2
-                    col = (229 + (201 - 229) * t, 139 + (98 - 139) * t, 107 + (63 - 107) * t)
+                    col = (112 + (72 - 112) * t, 117 + (76 - 117) * t, 122 + (80 - 122) * t)
                     # Funke (4-zackiger Stern)
                     px, py = abs(u - .5), abs(v - .5)
                     star = (px ** .55 + py ** .55) ** (1 / .55) < .30

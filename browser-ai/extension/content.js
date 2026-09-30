@@ -1,31 +1,165 @@
 // Eckblick AI – Content-Script
-// Hot-Corner unten links, Auto-Frage bei Textmarkierung, Panel im Shadow-DOM.
+// Läuft in jedem Frame. Erkennt Fragen (Markieren + ⌘C bzw. Markieren) und
+// zeigt im obersten Frame das Panel samt Hot-Corner unten links.
 (() => {
-  if (window.top !== window || window.__eckblick) return;
-  window.__eckblick = true;
+  // Eine ältere Instanz (z. B. nach einem Update der Erweiterung) räumt sich selbst ab.
+  const ac = new AbortController();
+  const teardown = [];
+  document.dispatchEvent(new CustomEvent("eckblick:teardown"));
+  document.addEventListener("eckblick:teardown", () => { ac.abort(); teardown.forEach((fn) => fn()); }, { signal: ac.signal });
+  const on = (target, type, fn, opts = {}) =>
+    target.addEventListener(type, fn, { ...(typeof opts === "boolean" ? { capture: opts } : opts), signal: ac.signal });
+  const alive = () => { try { return Boolean(chrome.runtime?.id); } catch { return false; } };
 
+  const isTop = window.top === window;
+  const MAX_SELECTION = 8000;
+  let settings = { trigger: "shortcut", autoCopy: false, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
+  let hostEl = null; // Panel-Host (nur im obersten Frame)
+  let lastSelection = "";
+
+  // Frage weiterreichen: im obersten Frame direkt ans Panel, sonst über den Service-Worker.
+  let onQuestion = (text, surrounding) => {
+    if (alive()) chrome.runtime.sendMessage({ type: "frame-ask", text, surrounding }).catch(() => {});
+  };
+
+  // ---------- Erkennung ----------
+  function inEditable(node) {
+    const el = node?.nodeType === 1 ? node : node?.parentElement;
+    return Boolean(el?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']"));
+  }
+  function surroundingText(sel) {
+    if (sel.toString().length > 200) return "";
+    const el = sel.anchorNode?.parentElement?.closest("p, li, td, dd, blockquote, h1, h2, h3, h4, article, section, div");
+    const t = el?.innerText?.replace(/\s+/g, " ").trim() ?? "";
+    if (!t || t.length <= sel.toString().trim().length + 10) return "";
+    return t.length > 700 ? t.slice(0, 700) + " …" : t;
+  }
+  function deepActive() {
+    let el = document.activeElement;
+    while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
+    return el;
+  }
+  // allowEditable: beim bewussten Kopieren auch Text aus Eingabefeldern nehmen
+  function currentSelection({ allowEditable = false } = {}) {
+    const ae = deepActive();
+    if (allowEditable && ae && ae !== hostEl && (ae.tagName === "TEXTAREA" || ae.tagName === "INPUT")) {
+      try {
+        const t = ae.value.slice(ae.selectionStart, ae.selectionEnd).trim();
+        if (t) return { text: t, surrounding: "" };
+      } catch { /* Feldtyp ohne Auswahl */ }
+    }
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return null;
+    const text = sel.toString().trim();
+    if (!text || (!allowEditable && inEditable(sel.anchorNode))) return null;
+    return { text, surrounding: surroundingText(sel) };
+  }
+  const fromPanel = (e) => hostEl && e.composedPath().includes(hostEl);
+
+  // Auslöser 1 (Standard): markieren + ⌘C / Strg+C
+  on(window, "copy", (e) => {
+    if (settings.trigger !== "copy" || fromPanel(e)) return;
+    const s = currentSelection({ allowEditable: true });
+    if (!s || s.text.length < settings.minChars) return;
+    lastSelection = s.text;
+    setTimeout(() => onQuestion(s.text, s.surrounding), 0);
+  }, true);
+
+  // Auslöser 2 (optional): nur markieren, mit Maus oder Tastatur
+  let pointerDown = false;
+  let selectTimer = null;
+  function checkSelection(suppress) {
+    if (settings.trigger !== "select" || suppress) return;
+    const s = currentSelection();
+    if (!s || s.text.length < settings.minChars || s.text === lastSelection) return;
+    lastSelection = s.text;
+    onQuestion(s.text, s.surrounding);
+  }
+  on(window, "pointerdown", () => { pointerDown = true; }, true);
+  on(window, "pointerup", (e) => {
+    pointerDown = false;
+    if (e.button !== 0 || fromPanel(e)) return;
+    const suppress = e.altKey;
+    clearTimeout(selectTimer);
+    selectTimer = setTimeout(() => checkSelection(suppress), 220);
+  }, true);
+  on(document, "selectionchange", () => {
+    const sel = window.getSelection();
+    if (sel?.isCollapsed) { lastSelection = ""; return; }
+    if (pointerDown || settings.trigger !== "select") return;
+    clearTimeout(selectTimer); // Tastatur-Markierung (Shift+Pfeile, ⌘A): kurz warten bis sie steht
+    selectTimer = setTimeout(() => checkSelection(false), 700);
+  });
+
+  // KI-Antwort am Cursor einfügen (in dem Frame, der gerade den Fokus hat)
+  function insertIntoFocused(text) {
+    if (!document.hasFocus()) return false;
+    const el = deepActive();
+    if (!el || el === hostEl || el.tagName === "IFRAME" || el.tagName === "FRAME") return false;
+    const isField = el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && /^(text|search|email|url|tel|)$/i.test(el.type));
+    if (!isField && !el.isContentEditable) return false;
+    el.focus();
+    if (document.execCommand("insertText", false, text)) return true;
+    if (isField) {
+      el.setRangeText(text, el.selectionStart, el.selectionEnd, "end");
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    }
+    return false;
+  }
+  let onNoSelection = () => {};
+  let onInsertFailed = () => {};
+
+  if (alive()) chrome.runtime.onMessage.addListener((msg) => {
+    if (ac.signal.aborted) return;
+    if (msg.type === "ask-selection") {
+      // Nur der Frame, in dem der Fokus gerade liegt (andere können alte Markierungen haben).
+      if (!document.hasFocus() || /^I?FRAME$/.test(document.activeElement?.tagName ?? "")) return;
+      const s = currentSelection({ allowEditable: true });
+      if (s && s.text.length >= 1) { lastSelection = s.text; onQuestion(s.text, s.surrounding); }
+      else if (isTop && !/^I?FRAME$/.test(document.activeElement?.tagName ?? "")) onNoSelection();
+    } else if (msg.type === "insert-text") {
+      const ok = insertIntoFocused(msg.text);
+      if (!ok && isTop && !/^I?FRAME$/.test(document.activeElement?.tagName ?? "")) onInsertFailed(msg.text);
+    }
+  });
+
+  function loadSettings(after) {
+    if (!alive()) return;
+    chrome.runtime.sendMessage({ type: "get-settings" }, (s) => {
+      if (chrome.runtime.lastError || !s) return;
+      settings = { ...settings, ...s };
+      after?.();
+    });
+  }
+
+  if (!isTop) {
+    loadSettings();
+    chrome.storage.onChanged.addListener(() => loadSettings());
+    return;
+  }
+
+  // ======================= ab hier nur oberster Frame =======================
   const CORNER = 4; // px Abstand zur Ecke, der als "in der Ecke" gilt
   const HINT_RADIUS = 90; // ab hier leuchtet der Ecken-Hinweis auf
-  const MAX_SELECTION = 8000;
-
-  let settings = { autoAsk: true, autoCopy: true, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
   let messages = []; // API-Verlauf der aktuellen Unterhaltung
   let port = null;
   let streaming = false;
   let pinned = false;
-  let lastSelection = "";
   let answerText = "";
   let hideTimer = null;
   let cornerTimer = null;
   let renderQueued = false;
   let hintVisible = false;
-  let selectTimer = null;
+  let pendingPaste = false;
   let peek = false; // per Ecke geöffnet, noch nichts gefragt → verschwindet beim Wegziehen
 
   // ---------- DOM ----------
   const host = document.createElement("eckblick-ai");
   host.style.cssText = "all:initial;position:fixed;left:0;bottom:0;z-index:2147483647;";
   const root = host.attachShadow({ mode: "closed" });
+  hostEl = host;
+  teardown.push(() => host.remove());
 
   const I = {
     globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
@@ -40,81 +174,83 @@
 
   root.innerHTML = `
 <style>
-:host { --bg: rgba(255,255,255,.93); --fg:#1b1d22; --muted:#6b7080; --line:rgba(20,24,40,.09);
-  --accent:#d97757; --accent-soft:rgba(217,119,87,.13); --quote:rgba(20,24,40,.045); --code:rgba(20,24,40,.06);
-  --shadow:0 18px 50px -12px rgba(15,20,40,.35), 0 2px 8px rgba(15,20,40,.08); }
+:host { --bg: rgba(248,249,250,.72); --fg:#202124; --faint:#9aa0a6; --line:rgba(0,0,0,.07);
+  --accent:#5f6368; --soft:rgba(0,0,0,.05); --code:rgba(0,0,0,.05);
+  --shadow:0 8px 28px -10px rgba(0,0,0,.22), 0 1px 3px rgba(0,0,0,.06); }
 @media (prefers-color-scheme: dark) {
-  :host { --bg: rgba(28,29,34,.93); --fg:#ecedf0; --muted:#9a9eab; --line:rgba(255,255,255,.08);
-    --accent:#e58b6b; --accent-soft:rgba(229,139,107,.16); --quote:rgba(255,255,255,.05); --code:rgba(255,255,255,.08);
-    --shadow:0 18px 50px -12px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.3); }
+  :host { --bg: rgba(41,42,45,.7); --fg:#e3e3e3; --faint:#80858b; --line:rgba(255,255,255,.07);
+    --accent:#bdc1c6; --soft:rgba(255,255,255,.06); --code:rgba(255,255,255,.07);
+    --shadow:0 8px 28px -10px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.25); }
 }
 * { box-sizing:border-box; }
-svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 
-.hint { position:fixed; left:-60px; bottom:-60px; width:120px; height:120px; border-radius:50%;
-  background: radial-gradient(circle, var(--accent) 0%, rgba(217,119,87,.25) 35%, transparent 68%);
+.hint { position:fixed; left:-40px; bottom:-40px; width:80px; height:80px; border-radius:50%;
+  background: radial-gradient(circle, rgba(128,128,128,.45) 0%, rgba(128,128,128,.12) 45%, transparent 70%);
   opacity:0; pointer-events:none; transition: opacity .12s linear; }
 
-.panel { position:fixed; left:12px; bottom:12px; width:min(410px, calc(100vw - 24px));
-  max-height:min(72vh, 600px); display:flex; flex-direction:column;
-  font: 14px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--fg);
-  background:var(--bg); backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6);
-  border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow);
-  transform-origin: bottom left; transform: translate(-8px, 8px) scale(.94); opacity:0; pointer-events:none;
-  transition: transform .18s cubic-bezier(.2,.9,.3,1.2), opacity .14s ease; }
+.panel { position:fixed; left:10px; bottom:10px; width:min(360px, calc(100vw - 20px));
+  max-height:min(62vh, 520px); display:flex; flex-direction:column;
+  font: 12.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color:var(--fg);
+  -webkit-font-smoothing:antialiased;
+  background:var(--bg); backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
+  transform: translateY(6px); opacity:0; pointer-events:none;
+  transition: transform .16s ease, opacity .14s ease; }
 .panel.open { transform:none; opacity:1; pointer-events:auto; }
+.panel:not(:hover) .tools { opacity:.45; }
 
-header { display:flex; align-items:center; gap:6px; padding:9px 10px 7px 13px; }
-.brand { display:flex; align-items:center; gap:7px; font-weight:650; font-size:13px; letter-spacing:.01em; flex:1; min-width:0; }
-.brand .dot { width:20px; height:20px; border-radius:6px; display:grid; place-items:center; color:#fff;
-  background: linear-gradient(135deg, #e58b6b, #c9623f); }
-.brand .dot svg { width:12px; height:12px; fill:#fff; stroke:none; }
-.brand .model { font-weight:500; color:var(--muted); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-button { all:unset; cursor:pointer; display:grid; place-items:center; width:28px; height:28px; border-radius:8px; color:var(--muted); transition: background .12s, color .12s; }
-button:hover { background:var(--quote); color:var(--fg); }
-button.on { color:var(--accent); background:var(--accent-soft); }
-button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+header { display:flex; align-items:center; gap:2px; padding:6px 6px 2px 12px; }
+.brand { display:flex; align-items:center; gap:6px; font-weight:500; font-size:11px; color:var(--faint); flex:1; min-width:0; letter-spacing:.02em; }
+.brand .dot { display:grid; place-items:center; }
+.brand .dot svg { width:10px; height:10px; fill:currentColor; stroke:none; }
+.brand .model { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.brand .model::before { content:"· "; }
+.tools { display:flex; gap:1px; transition:opacity .15s; }
+button { all:unset; cursor:pointer; display:grid; place-items:center; width:24px; height:24px; border-radius:6px; color:var(--faint); transition: background .12s, color .12s; }
+button:hover { background:var(--soft); color:var(--fg); }
+button.on { color:var(--fg); background:var(--soft); }
+button:focus-visible { outline:1px solid var(--accent); outline-offset:1px; }
 
-.body { position:relative; overflow:auto; padding:2px 15px 10px; overscroll-behavior:contain; scrollbar-width:thin; }
-.q { margin:2px 0 10px; padding:7px 10px; border-left:3px solid var(--accent); background:var(--quote); border-radius:0 8px 8px 0;
-  color:var(--muted); font-size:12.5px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-wrap; word-break:break-word; }
-.q.user { border-left-color:var(--muted); }
+.body { position:relative; overflow:auto; padding:2px 12px 8px; overscroll-behavior:contain; scrollbar-width:thin; }
+.q { margin:2px 0 7px; padding:0 0 0 8px; border-left:2px solid var(--line);
+  color:var(--faint); font-size:11.5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-wrap; word-break:break-word; }
 .a { word-break:break-word; }
-.a p { margin:0 0 .6em; } .a p:last-child { margin-bottom:0; }
-.a ul, .a ol { margin:.2em 0 .6em; padding-left:1.25em; } .a li { margin:.15em 0; }
-.a .li { margin:.1em 0; padding-left:.9em; text-indent:-.9em; }
-.a h1,.a h2,.a h3 { font-size:14px; margin:.7em 0 .3em; }
-.a strong { font-weight:650; }
-.a code { font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:var(--code); padding:.1em .35em; border-radius:5px; }
-.a pre { background:var(--code); padding:9px 11px; border-radius:9px; overflow:auto; margin:.3em 0 .7em; }
+.a p { margin:0 0 .5em; } .a p:last-child { margin-bottom:0; }
+.a ul, .a ol { margin:.2em 0 .5em; padding-left:1.2em; } .a li { margin:.1em 0; }
+.a .li { margin:.1em 0; padding-left:.8em; text-indent:-.8em; }
+.a h1,.a h2,.a h3 { font-size:12.5px; font-weight:600; margin:.6em 0 .2em; }
+.a strong { font-weight:600; }
+.a code { font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:var(--code); padding:.05em .3em; border-radius:4px; }
+.a pre { background:var(--code); padding:7px 9px; border-radius:7px; overflow:auto; margin:.3em 0 .6em; }
 .a pre code { background:none; padding:0; }
-.a a { color:var(--accent); text-decoration:none; } .a a:hover { text-decoration:underline; }
-.turn + .turn { margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
-.caret::after { content:""; display:inline-block; width:7px; height:14px; margin-left:2px; vertical-align:-2px; background:var(--accent); border-radius:2px; animation: blink 1s steps(2) infinite; }
+.a a { color:inherit; text-decoration:underline; text-decoration-color:var(--faint); }
+.turn + .turn { margin-top:10px; padding-top:9px; border-top:1px solid var(--line); }
+.caret::after { content:""; display:inline-block; width:5px; height:11px; margin-left:2px; vertical-align:-1px; background:var(--faint); border-radius:1px; animation: blink 1s steps(2) infinite; }
 @keyframes blink { 50% { opacity:0; } }
-.status { color:var(--muted); font-size:12.5px; display:flex; align-items:center; gap:8px; }
-.dots { display:inline-flex; gap:4px; } .dots i { width:6px; height:6px; border-radius:50%; background:var(--accent); animation: pulse 1s infinite ease-in-out; }
+.status { color:var(--faint); font-size:11.5px; display:flex; align-items:center; gap:7px; }
+.dots { display:inline-flex; gap:3px; } .dots i { width:4px; height:4px; border-radius:50%; background:var(--faint); animation: pulse 1s infinite ease-in-out; }
 .dots i:nth-child(2){animation-delay:.15s} .dots i:nth-child(3){animation-delay:.3s}
-@keyframes pulse { 0%,100% { opacity:.25; transform:scale(.8);} 50% { opacity:1; transform:none; } }
-.copied { margin-top:8px; font-size:11.5px; color:#2f9e6b; }
-.sources { margin-top:8px; display:flex; flex-wrap:wrap; gap:5px; }
-.sources a { font-size:11.5px; color:var(--muted); background:var(--quote); padding:2px 8px; border-radius:99px; text-decoration:none; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@keyframes pulse { 0%,100% { opacity:.25; } 50% { opacity:1; } }
+.copied { margin-top:6px; font-size:10.5px; color:var(--faint); }
+.sources { margin-top:6px; display:flex; flex-wrap:wrap; gap:4px; }
+.sources a, .sources span { font-size:10.5px; color:var(--faint); background:var(--soft); padding:1px 7px; border-radius:99px; text-decoration:none; max-width:170px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sources a:hover { color:var(--fg); }
-.err { color:#d4493b; font-size:13px; }
-.err button { display:inline-flex; width:auto; height:auto; padding:4px 10px; margin-top:6px; background:var(--accent); color:#fff; border-radius:8px; font-weight:600; font-size:12.5px; }
+.err { color:#c5503f; font-size:12px; }
+.err button { display:inline-flex; width:auto; height:auto; padding:3px 9px; margin-top:6px; background:var(--soft); color:var(--fg); border-radius:6px; font-weight:500; font-size:11.5px; }
 
-.chips { display:flex; gap:6px; padding:0 13px 8px; flex-wrap:wrap; }
+.chips { display:flex; gap:4px; padding:0 12px 6px; flex-wrap:wrap; }
 .chips:empty { display:none; }
-.chip { width:auto; height:auto; padding:3px 10px; border-radius:99px; font-size:12px; border:1px solid var(--line); color:var(--muted); }
+.chip { width:auto; height:auto; padding:1px 8px; border-radius:99px; font-size:11px; border:1px solid var(--line); color:var(--faint); }
 
-footer { display:flex; align-items:flex-end; gap:6px; padding:8px 8px 8px 13px; border-top:1px solid var(--line); }
-textarea { all:unset; display:block; flex:1; min-height:20px; max-height:110px; overflow:auto; font-family:inherit; font-size:14px; line-height:1.45; color:var(--fg); padding:4px 0; white-space:pre-wrap; word-break:break-word; }
-textarea::placeholder { color:var(--muted); }
-.send { background:var(--accent); color:#fff; }
-.send:hover { background:var(--accent); color:#fff; filter:brightness(1.08); }
-.empty { color:var(--muted); font-size:12.5px; padding:4px 0 8px; }
-kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 4px; }
-.toast { position:absolute; right:12px; top:-30px; background:var(--fg); color:var(--bg); font-size:12px; padding:3px 9px; border-radius:7px; opacity:0; transition:opacity .15s; pointer-events:none; }
+footer { display:flex; align-items:flex-end; gap:4px; padding:5px 6px 5px 12px; border-top:1px solid var(--line); }
+textarea { all:unset; display:block; flex:1; min-height:18px; max-height:100px; overflow:auto; font-family:inherit; font-size:12.5px; line-height:1.45; color:var(--fg); padding:3px 0; white-space:pre-wrap; word-break:break-word; }
+textarea::placeholder { color:var(--faint); }
+.send { color:var(--faint); }
+.send:hover { color:var(--fg); }
+.empty { color:var(--faint); font-size:11.5px; padding:2px 0 6px; line-height:1.6; }
+kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-radius:3px; padding:0 3px; background:var(--soft); }
+.toast { position:absolute; right:8px; top:-26px; background:rgba(32,33,36,.85); color:#fff; font-size:11px; padding:2px 8px; border-radius:6px; opacity:0; transition:opacity .15s; pointer-events:none; }
 .toast.show { opacity:1; }
 </style>
 <div class="hint"></div>
@@ -122,16 +258,18 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
   <div class="toast"></div>
   <header>
     <div class="brand"><span class="dot">${I.spark}</span>Eckblick <span class="model"></span></div>
-    <button class="web" title="Websuche an/aus">${I.globe}</button>
-    <button class="pin" title="Anheften (Panel bleibt offen)">${I.pin}</button>
-    <button class="copy" title="Antwort kopieren">${I.copy}</button>
-    <button class="opts" title="Einstellungen">${I.gear}</button>
-    <button class="close" title="Schließen (Esc)">${I.close}</button>
+    <div class="tools">
+      <button class="web" title="Websuche an/aus">${I.globe}</button>
+      <button class="pin" title="Anheften (Panel bleibt offen)">${I.pin}</button>
+      <button class="copy" title="Antwort kopieren">${I.copy}</button>
+      <button class="opts" title="Einstellungen">${I.gear}</button>
+      <button class="close" title="Schließen (Esc)">${I.close}</button>
+    </div>
   </header>
   <div class="body"></div>
   <div class="chips"></div>
   <footer>
-    <textarea rows="1" placeholder="Frag etwas …  (Enter)"></textarea>
+    <textarea rows="1" placeholder="Frage …"></textarea>
     <button class="send" title="Senden">${I.send}</button>
   </footer>
 </div>`;
@@ -219,7 +357,10 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }
-  const PASTE_KEY = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘V" : "Strg+V";
+  const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+  const PASTE_KEY = IS_MAC ? "⌘V" : "Strg+V";
+  const ASK_KEY = IS_MAC ? "⌃C" : "Alt+Shift+C";
+  const INSERT_KEY = IS_MAC ? "⌃V" : "Alt+Shift+V";
 
   function copyAnswer({ auto = false } = {}) {
     const text = plain(answerText);
@@ -280,7 +421,7 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
 
   function renderEmpty() {
     body.innerHTML = settings.hasKey
-      ? `<div class="empty">Text markieren → Antwort erscheint hier und liegt sofort in der Zwischenablage.<br>Oder direkt fragen. <kbd>Esc</kbd> schließt, <kbd>Alt</kbd> beim Markieren unterdrückt die Auto-Frage.</div>`
+      ? `<div class="empty">Text markieren und <kbd>${settings.trigger === "copy" ? PASTE_KEY.replace("V", "C") : ASK_KEY}</kbd> → Frage geht an die KI.<br><kbd>${INSERT_KEY}</kbd> fügt die Antwort am Cursor ein. Oder hier direkt fragen.</div>`
       : `<div class="err">Noch kein API-Key hinterlegt.<br><button class="setkey">API-Key eintragen</button></div>`;
     chips.innerHTML = "";
   }
@@ -326,6 +467,7 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
 
   // ---------- Anfrage ----------
   function stop() {
+    pendingPaste = false;
     if (port) { port.disconnect(); port = null; }
     if (streaming) {
       setStreaming(false);
@@ -343,20 +485,31 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
     stop();
     peek = false;
     if (fresh) { messages = []; body.innerHTML = ""; }
-    messages.push({ role: "user", content: userContent });
+    messages.push({ role: "user", content: messages.length ? userContent : withPage(userContent) });
     answerText = "";
     chips.innerHTML = "";
     open();
     newTurn(label, kind);
     setStreaming(true);
 
-    const myPort = chrome.runtime.connect({ name: "eckblick" });
+    let myPort;
+    try {
+      if (!alive()) throw new Error("invalidated");
+      myPort = chrome.runtime.connect({ name: "eckblick" });
+    } catch {
+      setStreaming(false);
+      messages.pop();
+      currentTurn.querySelector(".a").innerHTML = `<div class="err">Eckblick wurde aktualisiert. Bitte diese Seite einmal neu laden.</div>`;
+      return;
+    }
     port = myPort;
     myPort.onMessage.addListener((m) => {
       if (port !== myPort) return;
       if (m.type === "delta") {
         answerText += m.text;
         queueRender();
+      } else if (m.type === "first-user") {
+        messages[0] = m.message; // inkl. Wissensbasis, bleibt für Folgefragen gleich
       } else if (m.type === "status") {
         const st = currentTurn?.querySelector(".st");
         if (st) st.textContent = m.text;
@@ -369,6 +522,13 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
           const s = document.createElement("div");
           s.className = "sources";
           for (const src of m.sources) {
+            if (!src.url) {
+              const tag = document.createElement("span");
+              tag.textContent = `📄 ${src.title}`;
+              tag.title = src.title;
+              s.appendChild(tag);
+              continue;
+            }
             const a = document.createElement("a");
             a.href = src.url; a.target = "_blank"; a.rel = "noopener noreferrer";
             try { a.textContent = src.title || new URL(src.url).hostname; } catch { a.textContent = src.url; }
@@ -378,7 +538,15 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
           currentTurn.appendChild(s);
         }
         setChips();
+        chrome.runtime.sendMessage({ type: "answer-ready" }, () => void chrome.runtime.lastError);
         if (settings.autoCopy) copyAnswer({ auto: true });
+        else {
+          const tag = document.createElement("div");
+          tag.className = "copied";
+          tag.textContent = `✓ Fertig. ${INSERT_KEY} fügt die Antwort am Cursor ein`;
+          currentTurn.appendChild(tag);
+        }
+        if (pendingPaste) pasteAnswer();
         myPort.disconnect();
         port = null;
       } else if (m.type === "error") {
@@ -403,7 +571,6 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
       type: "ask",
       messages,
       webSearch: settings.webSearch,
-      page: { title: document.title.slice(0, 200), url: location.href.slice(0, 500) },
     });
   }
 
@@ -414,6 +581,9 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
     ask(content, selection, { fresh: true });
   }
 
+  // Seitenkontext gehört in die erste Frage (nicht in den System-Prompt), damit der Cache hält.
+  const withPage = (text) => `${text}\n\n(Ich lese gerade: "${document.title.slice(0, 200)}", ${location.href.slice(0, 300)})`;
+
   function askTyped() {
     const q = input.value.trim();
     if (!q) return;
@@ -422,43 +592,22 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
     ask(q, q, { kind: "user" });
   }
 
-  // ---------- Markierung ----------
-  function inEditable(node) {
-    const el = node?.nodeType === 1 ? node : node?.parentElement;
-    return Boolean(el?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true']"));
-  }
-  function surroundingText(sel) {
-    if (sel.toString().length > 200) return "";
-    const el = sel.anchorNode?.parentElement?.closest("p, li, td, dd, blockquote, h1, h2, h3, h4, article, section, div");
-    const t = el?.innerText?.replace(/\s+/g, " ").trim() ?? "";
-    if (!t || t.length <= sel.toString().trim().length + 10) return "";
-    return t.length > 700 ? t.slice(0, 700) + " …" : t;
-  }
-  function currentSelection() {
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed) return null;
-    const text = sel.toString().trim();
-    if (!text || inEditable(sel.anchorNode)) return null;
-    return { text, surrounding: surroundingText(sel) };
-  }
+  onQuestion = askAbout;
+  onNoSelection = () => { open({ focus: true }); flash("Erst Text markieren"); };
+  onInsertFailed = (text) => {
+    chrome.runtime.sendMessage({ type: "copy", text }, () => void chrome.runtime.lastError);
+    open();
+    flash(`Kein Textfeld aktiv. Antwort kopiert, ${PASTE_KEY} fügt ein`);
+  };
 
-  document.addEventListener("mouseup", (e) => {
-    if (e.button !== 0 || e.composedPath().includes(host)) return;
-    const suppress = e.altKey;
-    clearTimeout(selectTimer);
-    selectTimer = setTimeout(() => {
-      if (!settings.autoAsk || suppress) return;
-      const s = currentSelection();
-      if (!s || s.text.length < settings.minChars || s.text === lastSelection) return;
-      lastSelection = s.text;
-      askAbout(s.text, s.surrounding);
-    }, 220);
-  }, true);
-
-  document.addEventListener("selectionchange", () => {
-    const sel = window.getSelection();
-    if (sel?.isCollapsed) lastSelection = "";
-  });
+  // ⌃V: fertige Antwort einfügen; läuft sie noch, wird nach Abschluss eingefügt.
+  function pasteAnswer() {
+    if (streaming) { pendingPaste = true; open(); flash("Wird eingefügt, sobald die Antwort fertig ist"); return; }
+    const text = plain(answerText);
+    if (!text) { open(); flash("Noch keine Antwort"); return; }
+    pendingPaste = false;
+    chrome.runtime.sendMessage({ type: "insert-answer", text }, () => void chrome.runtime.lastError);
+  }
 
   // ---------- Hot-Corner ----------
   function inCorner(x, y) { return x <= CORNER && y >= window.innerHeight - CORNER; }
@@ -471,7 +620,7 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
   }
   function disarmCorner() { clearTimeout(cornerTimer); cornerTimer = null; }
 
-  document.addEventListener("mousemove", (e) => {
+  on(document, "mousemove", (e) => {
     const x = e.clientX, y = e.clientY;
     const dist = Math.hypot(x, window.innerHeight - y);
     if (dist < HINT_RADIUS && !isOpen()) {
@@ -490,7 +639,7 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
   }, { passive: true, capture: true });
 
   // Maus verlässt das Fenster genau in der Ecke (schneller Wisch)
-  document.addEventListener("mouseout", (e) => {
+  on(document, "mouseout", (e) => {
     if (!e.relatedTarget && e.clientX <= 12 && e.clientY >= window.innerHeight - 12) armCorner();
   });
 
@@ -498,12 +647,12 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
   panel.addEventListener("mouseenter", () => { clearTimeout(hideTimer); hideTimer = null; });
   panel.addEventListener("mouseleave", () => scheduleHide());
 
-  document.addEventListener("mousedown", (e) => {
+  on(document, "mousedown", (e) => {
     if (!isOpen() || pinned || e.composedPath().includes(host)) return;
     close();
   }, true);
 
-  document.addEventListener("keydown", (e) => {
+  on(document, "keydown", (e) => {
     if (e.key === "Escape" && isOpen()) {
       if (streaming) stop(); else close();
     }
@@ -545,25 +694,23 @@ kbd { font: 11px ui-monospace, monospace; border:1px solid var(--line); border-b
 
   // ---------- Befehle & Einstellungen ----------
   chrome.runtime.onMessage.addListener((msg) => {
+    if (ac.signal.aborted) return;
     if (msg.type === "toggle-panel") {
       if (isOpen()) close(); else open({ focus: true });
-    } else if (msg.type === "ask-selection") {
-      const s = currentSelection();
-      if (s) { lastSelection = s.text; askAbout(s.text, s.surrounding); }
-      else open({ focus: true });
+    } else if (msg.type === "ask-text") {
+      askAbout(msg.text, msg.surrounding);
+    } else if (msg.type === "paste-answer") {
+      pasteAnswer();
     }
   });
 
   const MODEL_LABEL = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-4-5": "Haiku 4.5" };
-  function loadSettings() {
-    chrome.runtime.sendMessage({ type: "get-settings" }, (s) => {
-      if (chrome.runtime.lastError || !s) return;
-      settings = { ...settings, ...s };
-      webBtn.classList.toggle("on", Boolean(settings.webSearch));
-      $(".model").textContent = MODEL_LABEL[settings.model] ?? settings.model;
-      if (!messages.length && !streaming) renderEmpty();
-    });
-  }
-  loadSettings();
-  chrome.storage.onChanged.addListener(loadSettings);
+  const refreshSettings = () => loadSettings(() => {
+    webBtn.classList.toggle("on", Boolean(settings.webSearch));
+    $(".model").textContent = (MODEL_LABEL[settings.model] ?? settings.model) +
+      (settings.docCount ? ` · ${settings.docCount} Dok.` : "");
+    if (!messages.length && !streaming) renderEmpty();
+  });
+  refreshSettings();
+  chrome.storage.onChanged.addListener(refreshSettings);
 })();
