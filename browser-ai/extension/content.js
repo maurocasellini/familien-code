@@ -206,6 +206,7 @@ header { display:flex; align-items:center; gap:2px; padding:6px 6px 2px 12px; }
 .brand .dot svg { width:10px; height:10px; fill:currentColor; stroke:none; }
 .brand .model { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .brand .model::before { content:"· "; }
+.brand .model:empty { display:none; }
 .tools { display:flex; gap:1px; transition:opacity .15s; }
 button { all:unset; cursor:pointer; display:grid; place-items:center; width:24px; height:24px; border-radius:6px; color:var(--faint); transition: background .12s, color .12s; }
 button:hover { background:var(--soft); color:var(--fg); }
@@ -705,11 +706,10 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
     }
   });
 
-  const MODEL_LABEL = { "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-4-5": "Haiku 4.5" };
   const refreshSettings = () => loadSettings(() => {
     webBtn.classList.toggle("on", Boolean(settings.webSearch));
-    $(".model").textContent = (MODEL_LABEL[settings.model] ?? settings.model) +
-      (settings.docCount ? ` · ${settings.docCount} Dok.` : "");
+    // Kein Modellname, nur dezent die Zahl aktiver Dokumente
+    $(".model").textContent = settings.docCount ? `${settings.docCount} Dok.` : "";
     if (!messages.length && !streaming) renderEmpty();
   });
   refreshSettings();
