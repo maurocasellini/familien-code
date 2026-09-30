@@ -11,6 +11,7 @@ const DEFAULTS = {
   webSearch: false,
   language: "de",
   autoCopy: false,
+  showPanel: false,
   minChars: 3,
   cornerDelay: 120,
 };
@@ -135,6 +136,7 @@ async function runQuery(port, msg) {
   }
   if (useWeb) params.tools = [{ type: info.webSearch, name: "web_search", max_uses: 3 }];
 
+  setBadge(port.sender?.tab?.id, "…", "#80868b");
   const stream = client.beta.messages.stream(params);
   port.onDisconnect.addListener(() => stream.abort());
 
@@ -209,6 +211,8 @@ chrome.runtime.onConnect.addListener((port) => {
       await runQuery(port, msg);
     } catch (err) {
       const e = describeError(err);
+      if (e) setBadge(port.sender?.tab?.id, "!", "#c5503f", 6000);
+      else setBadge(port.sender?.tab?.id, "");
       if (e) {
         try {
           port.postMessage({ type: "error", ...e });
@@ -246,11 +250,16 @@ async function copyToClipboard(text, tabId) {
   if (tabId != null) showBadge(tabId);
 }
 
-function showBadge(tabId) {
-  chrome.action.setBadgeBackgroundColor({ color: "#2f9e6b", tabId });
-  chrome.action.setBadgeText({ text: "✓", tabId });
-  setTimeout(() => chrome.action.setBadgeText({ text: "", tabId }).catch(() => {}), 2500);
+// Dezente Rückmeldung am Erweiterungs-Icon: … = arbeitet, ✓ = fertig, ! = Fehler
+const badgeTimers = new Map();
+function setBadge(tabId, text, color, clearAfter) {
+  if (tabId == null) return;
+  clearTimeout(badgeTimers.get(tabId));
+  if (color) chrome.action.setBadgeBackgroundColor({ color, tabId }).catch(() => {});
+  chrome.action.setBadgeText({ text, tabId }).catch(() => {});
+  if (clearAfter) badgeTimers.set(tabId, setTimeout(() => chrome.action.setBadgeText({ text: "", tabId }).catch(() => {}), clearAfter));
 }
+const showBadge = (tabId) => setBadge(tabId, "✓", "#2f8a5b", 4000);
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.target === "offscreen") return;

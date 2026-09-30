@@ -13,7 +13,7 @@
 
   const isTop = window.top === window;
   const MAX_SELECTION = 8000;
-  let settings = { trigger: "shortcut", autoCopy: false, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
+  let settings = { trigger: "shortcut", autoCopy: false, showPanel: false, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
   let hostEl = null; // Panel-Host (nur im obersten Frame)
   let lastSelection = "";
 
@@ -481,14 +481,14 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
     }
   }
 
-  function ask(userContent, label, { fresh = false, kind = "" } = {}) {
+  function ask(userContent, label, { fresh = false, kind = "", silent = false } = {}) {
     stop();
     peek = false;
     if (fresh) { messages = []; body.innerHTML = ""; }
     messages.push({ role: "user", content: messages.length ? userContent : withPage(userContent) });
     answerText = "";
     chips.innerHTML = "";
-    open();
+    if (!silent || settings.showPanel) open();
     newTurn(label, kind);
     setStreaming(true);
 
@@ -555,6 +555,8 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
         const a = currentTurn.querySelector(".a");
         a.classList.remove("caret");
         a.innerHTML = `<div class="err">${esc(m.text)}${m.code === "no-key" ? '<br><button class="setkey">API-Key eintragen</button>' : ""}</div>`;
+        pendingPaste = false;
+        open(); // Fehler immer zeigen, auch bei stillen Fragen
         myPort.disconnect();
         port = null;
       }
@@ -578,7 +580,7 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
     const text = selection.length > MAX_SELECTION ? selection.slice(0, MAX_SELECTION) + " …" : selection;
     let content = `Markierter Text:\n"""\n${text}\n"""`;
     if (surrounding) content += `\n\nUmgebender Absatz (nur als Kontext):\n"""\n${surrounding}\n"""`;
-    ask(content, selection, { fresh: true });
+    ask(content, selection, { fresh: true, silent: true });
   }
 
   // Seitenkontext gehört in die erste Frage (nicht in den System-Prompt), damit der Cache hält.
@@ -593,18 +595,17 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
   }
 
   onQuestion = askAbout;
-  onNoSelection = () => { open({ focus: true }); flash("Erst Text markieren"); };
+  onNoSelection = () => {}; // ⌃C ohne Markierung: nichts tun
   onInsertFailed = (text) => {
     chrome.runtime.sendMessage({ type: "copy", text }, () => void chrome.runtime.lastError);
-    open();
-    flash(`Kein Textfeld aktiv. Antwort kopiert, ${PASTE_KEY} fügt ein`);
+    if (isOpen()) flash(`Kein Textfeld aktiv. Antwort kopiert, ${PASTE_KEY} fügt ein`);
   };
 
   // ⌃V: fertige Antwort einfügen; läuft sie noch, wird nach Abschluss eingefügt.
   function pasteAnswer() {
-    if (streaming) { pendingPaste = true; open(); flash("Wird eingefügt, sobald die Antwort fertig ist"); return; }
+    if (streaming) { pendingPaste = true; if (isOpen()) flash("Wird eingefügt, sobald die Antwort fertig ist"); return; }
     const text = plain(answerText);
-    if (!text) { open(); flash("Noch keine Antwort"); return; }
+    if (!text) { if (isOpen()) flash("Noch keine Antwort"); return; }
     pendingPaste = false;
     chrome.runtime.sendMessage({ type: "insert-answer", text }, () => void chrome.runtime.lastError);
   }

@@ -10,6 +10,7 @@ const DEFAULTS = {
   webSearch: false,
   language: "de",
   autoCopy: false,
+  showPanel: false,
   minChars: 3,
   cornerDelay: 120,
 };
