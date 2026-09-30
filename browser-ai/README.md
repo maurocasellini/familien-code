@@ -26,6 +26,7 @@ Antworten sind **einfügefertig**: kurz, sprachlich einfach, deutsche Rechtschre
 
 - **Modell:** Claude Opus 5.5 (Standard, beste Qualität), Sonnet 5.5, Haiku 4.5 (am schnellsten/günstigsten).
 - **Antwort automatisch kopieren** (Standard an).
+- **Antwortlänge:** sehr kurz (40 Wörter) / kurz (70, Standard) / ausführlicher (160). Gilt auch bei langen, strukturierten Fragen.
 - **Antwortsprache:** Deutsch (Deutschland, Standard) / wie die Frage / Englisch.
 - **Auto-Frage**, **Mindestlänge** der Markierung, **Websuche** (Standard aus), **Ecken-Verzögerung**.
 

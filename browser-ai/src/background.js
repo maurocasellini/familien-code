@@ -11,6 +11,7 @@ const DEFAULTS = {
   webSearch: false,
   language: "de",
   autoCopy: true,
+  length: "short",
   minChars: 3,
   cornerDelay: 120,
 };
@@ -21,7 +22,14 @@ const MODEL_INFO = {
   "claude-haiku-4-5": { effort: false, fallbacks: false, webSearch: "web_search_20250305" },
 };
 
-function systemPrompt(language, page) {
+const LENGTH = {
+  xs: { words: 40, multi: 60 },
+  short: { words: 70, multi: 110 },
+  long: { words: 160, multi: 220 },
+};
+
+function systemPrompt(language, page, length) {
+  const len = LENGTH[length] ?? LENGTH.short;
   const lang =
     language === "en"
       ? "Schreibe auf Englisch."
@@ -32,7 +40,14 @@ function systemPrompt(language, page) {
   return `Du beantwortest Fragen, die jemand beim Lesen im Browser markiert. Deine Antwort wird automatisch in die Zwischenablage kopiert und direkt irgendwo eingefügt, zum Beispiel in eine Mail, ein Dokument oder einen Chat. Sie muss also ohne Nachbearbeitung passen.
 
 So schreibst du:
-Kurz, klar und sprachlich einfach, wie ein kluger Mensch, der es jemandem schnell erklärt. Normalerweise zwei bis fünf Sätze. Nur mehr, wenn ausdrücklich nach Details gefragt wird. Die Antwort steht im ersten Satz. Keine Einleitung, keine Wiederholung der Frage, kein Fazit, keine Rückfrage am Ende.
+Kurz, klar und sprachlich einfach, wie ein kluger Mensch, der es jemandem in einer Minute erklärt. Die Antwort steht im ersten Satz. Keine Einleitung, keine Wiederholung der Frage, kein Fazit, keine Rückfrage am Ende.
+
+Länge, streng:
+Höchstens ${len.words} Wörter. Bei einer Frage mit mehreren Teilfragen oder Aspekten höchstens ${len.multi} Wörter insgesamt.
+Diese Grenze gilt immer, auch wenn die Frage lang, ausführlich oder „strukturiert“ formuliert ist oder viele Punkte aufzählt. Eine ausführliche Frage ist keine Bitte um eine lange Antwort.
+Bei mehreren Teilfragen: ein kurzer Einleitungssatz mit dem Kern, dann pro Teilfrage genau eine Zeile im Format „- Stichwort: Aussage in ein bis zwei kurzen Sätzen“.
+Lass Beispiele, Zahlen und Nebenaspekte weg, wenn sie für die Kernaussage nicht nötig sind. Lieber eine klare Aussage als drei halbe.
+Nur wenn die Person danach ausdrücklich „ausführlicher“ oder „mehr Details“ schreibt, darfst du die Grenze verdoppeln.
 Schlichter Text ohne Markdown: keine Überschriften, kein Fettdruck, keine Sternchen, keine Emojis, keine Nummerierungen. Meist reicht Fließtext, bei Bedarf in zwei oder drei kurze Absätze geteilt.
 Wenn eine Aufzählung wirklich klarer ist, beginnt jede Zeile mit einem einfachen Bindestrich und einem Leerzeichen, genau so:
 - erster Punkt
@@ -73,7 +88,7 @@ async function runQuery(port, msg) {
   const params = {
     model: settings.model,
     max_tokens: 8000,
-    system: systemPrompt(settings.language, msg.page),
+    system: systemPrompt(settings.language, msg.page, settings.length),
     messages: msg.messages,
   };
   // Schnelle, knappe Antworten: niedrige Effort-Stufe (Haiku kennt kein effort).

@@ -5,6 +5,7 @@ const DEFAULTS = {
   webSearch: false,
   language: "de",
   autoCopy: true,
+  length: "short",
   minChars: 3,
   cornerDelay: 120,
 };
