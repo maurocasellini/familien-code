@@ -182,11 +182,11 @@
 
   root.innerHTML = `
 <style>
-:host { --bg: rgba(255,255,255,.62); --fg:#2b2d30; --faint:#8a8f94; --line:rgba(0,0,0,.05);
+:host { --bg: rgba(255,255,255,.54); --fg:#2b2d30; --faint:#8a8f94; --line:rgba(0,0,0,.05);
   --accent:#5f6368; --soft:rgba(0,0,0,.04); --code:rgba(0,0,0,.04);
   --shadow:0 4px 18px -8px rgba(0,0,0,.14); }
 /* Farbe folgt der Webseite (nicht dem System): helle Seite → weiß, dunkle Seite → dunkel */
-:host([data-theme="dark"]) { --bg: rgba(30,31,34,.6); --fg:#e8eaed; --faint:#9aa0a6; --line:rgba(255,255,255,.06);
+:host([data-theme="dark"]) { --bg: rgba(30,31,34,.52); --fg:#e8eaed; --faint:#9aa0a6; --line:rgba(255,255,255,.06);
   --accent:#dadce0; --soft:rgba(255,255,255,.06); --code:rgba(255,255,255,.06);
   --shadow:0 4px 18px -8px rgba(0,0,0,.45); }
 * { box-sizing:border-box; }
@@ -210,7 +210,8 @@ svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.7;
 .chips, .copied { transition:opacity .15s; }
 .panel:not(:hover) footer { border-top-color:transparent; }
 
-header { display:flex; align-items:center; gap:2px; padding:6px 6px 2px 12px; }
+header { position:absolute; top:4px; right:4px; z-index:1; display:flex; align-items:center; }
+.brand { display:none; }
 .brand { display:flex; align-items:center; gap:6px; font-weight:400; font-size:10.5px; color:var(--faint); opacity:.8; flex:1; min-width:0; letter-spacing:.02em; }
 .brand .dot { display:grid; place-items:center; }
 .brand .dot svg { width:10px; height:10px; fill:currentColor; stroke:none; }
@@ -223,7 +224,9 @@ button:hover { background:var(--soft); color:var(--fg); }
 button.on { color:var(--fg); background:var(--soft); }
 button:focus-visible { outline:1px solid var(--accent); outline-offset:1px; }
 
-.body { position:relative; overflow:auto; padding:2px 12px 8px; overscroll-behavior:contain; scrollbar-width:thin; }
+.body:empty { display:none; }
+.body:empty ~ footer { border-top:0; }
+.body { position:relative; overflow:auto; padding:10px 12px 8px; overscroll-behavior:contain; scrollbar-width:thin; }
 .q { margin:2px 0 7px; padding:0 0 0 8px; border-left:2px solid var(--line);
   color:var(--faint); font-size:11.5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-wrap; word-break:break-word; }
 .a { word-break:break-word; }
@@ -268,7 +271,7 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
 <div class="panel" role="dialog" aria-label="Eckblick AI">
   <div class="toast"></div>
   <header>
-    <div class="brand"><span class="dot">${I.spark}</span>Eckblick <span class="model"></span></div>
+    <div class="brand"></div>
     <div class="tools">
       <button class="web" title="Websuche an/aus">${I.globe}</button>
       <button class="pin" title="Anheften (Panel bleibt offen)">${I.pin}</button>
@@ -280,7 +283,7 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
   <div class="body"></div>
   <div class="chips"></div>
   <footer>
-    <textarea rows="1" placeholder="Frage …"></textarea>
+    <textarea rows="1" placeholder=""></textarea>
     <button class="send" title="Senden">${I.send}</button>
   </footer>
 </div>`;
@@ -450,7 +453,7 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
 
   function renderEmpty() {
     body.innerHTML = settings.hasKey
-      ? `<div class="empty">Text markieren und <kbd>${settings.trigger === "copy" ? PASTE_KEY.replace("V", "C") : ASK_KEY}</kbd> → Frage geht an die KI.<br><kbd>${INSERT_KEY}</kbd> fügt die Antwort am Cursor ein. Oder hier direkt fragen.</div>`
+      ? "" // bewusst leer: keine Erklärung, kein Branding
       : `<div class="err">Noch kein API-Key hinterlegt.<br><button class="setkey">API-Key eintragen</button></div>`;
     chips.innerHTML = "";
   }
@@ -491,7 +494,8 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
     "Mehr Details": "Bitte etwas ausführlicher.",
   };
   function setChips() {
-    chips.innerHTML = Object.keys(CHIPS).map((o) => `<button class="chip">${o}</button>`).join("");
+    // Bewusst keine Vorschlagsknöpfe mehr im Panel (maximal dezent)
+    chips.innerHTML = "";
   }
 
   // ---------- Anfrage ----------
@@ -568,10 +572,6 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
         }
         setChips();
         chrome.runtime.sendMessage({ type: "answer-ready" }, () => void chrome.runtime.lastError);
-        const tag = document.createElement("div");
-        tag.className = "copied";
-        tag.textContent = `✓ Fertig. ${INSERT_KEY} fügt die Antwort am Cursor ein`;
-        currentTurn.appendChild(tag);
         myPort.disconnect();
         port = null;
       } else if (m.type === "error") {
@@ -742,8 +742,6 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
 
   const refreshSettings = () => loadSettings(() => {
     webBtn.classList.toggle("on", Boolean(settings.webSearch));
-    // Kein Modellname, nur dezent die Zahl aktiver Dokumente
-    $(".model").textContent = settings.docCount ? `${settings.docCount} Dok.` : "";
     if (!messages.length && !streaming) renderEmpty();
   });
   refreshSettings();
