@@ -13,7 +13,7 @@
 
   const isTop = window.top === window;
   const MAX_SELECTION = 8000;
-  let settings = { trigger: "shortcut", autoCopy: false, showPanel: false, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
+  let settings = { trigger: "shortcut", showPanel: false, webSearch: false, minChars: 3, cornerDelay: 120, hasKey: true, model: "" };
   let hostEl = null; // Panel-Host (nur im obersten Frame)
   let lastSelection = "";
 
@@ -105,7 +105,15 @@
       el.dispatchEvent(new Event("input", { bubbles: true }));
       return true;
     }
-    return false;
+    // Rich-Text-Editoren: simuliertes Einfügen mit eigenem Inhalt.
+    // Berührt die echte Zwischenablage nicht.
+    try {
+      const data = new DataTransfer();
+      data.setData("text/plain", text);
+      return !el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+    } catch {
+      return false;
+    }
   }
   let onNoSelection = () => {};
   let onInsertFailed = () => {};
@@ -364,22 +372,13 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
   const ASK_KEY = IS_MAC ? "⌃C" : "Alt+Shift+C";
   const INSERT_KEY = IS_MAC ? "⌃V" : "Alt+Shift+V";
 
-  function copyAnswer({ auto = false } = {}) {
+  // Nur per Klick auf das Kopieren-Symbol im Panel, nie automatisch.
+  function copyAnswer() {
     const text = plain(answerText);
     if (!text) return;
-    const turn = currentTurn;
     chrome.runtime.sendMessage({ type: "copy", text }, (res) => {
-      if (chrome.runtime.lastError || !res?.ok) {
-        flash("Kopieren fehlgeschlagen");
-        return;
-      }
-      flash(`Kopiert. ${PASTE_KEY} zum Einfügen`);
-      if (auto && turn) {
-        const tag = document.createElement("div");
-        tag.className = "copied";
-        tag.textContent = `✓ In der Zwischenablage, ${PASTE_KEY} fügt ein`;
-        turn.appendChild(tag);
-      }
+      if (chrome.runtime.lastError || !res?.ok) flash("Kopieren fehlgeschlagen");
+      else flash(`Kopiert. ${PASTE_KEY} zum Einfügen`);
     });
   }
 
@@ -542,13 +541,10 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
         }
         setChips();
         chrome.runtime.sendMessage({ type: "answer-ready" }, () => void chrome.runtime.lastError);
-        if (settings.autoCopy) copyAnswer({ auto: true });
-        else {
-          const tag = document.createElement("div");
-          tag.className = "copied";
-          tag.textContent = `✓ Fertig. ${INSERT_KEY} fügt die Antwort am Cursor ein`;
-          currentTurn.appendChild(tag);
-        }
+        const tag = document.createElement("div");
+        tag.className = "copied";
+        tag.textContent = `✓ Fertig. ${INSERT_KEY} fügt die Antwort am Cursor ein`;
+        currentTurn.appendChild(tag);
         if (pendingPaste) pasteAnswer();
         myPort.disconnect();
         port = null;
@@ -599,9 +595,10 @@ kbd { font: 10px ui-monospace, monospace; border:1px solid var(--line); border-r
 
   onQuestion = askAbout;
   onNoSelection = () => {}; // ⌃C ohne Markierung: nichts tun
-  onInsertFailed = (text) => {
-    chrome.runtime.sendMessage({ type: "copy", text }, () => void chrome.runtime.lastError);
-    if (isOpen()) flash(`Kein Textfeld aktiv. Antwort kopiert, ${PASTE_KEY} fügt ein`);
+  // Kein Textfeld gefunden: nichts kopieren, nur dezent melden.
+  onInsertFailed = () => {
+    chrome.runtime.sendMessage({ type: "insert-failed" }, () => void chrome.runtime.lastError);
+    if (isOpen()) flash("Kein Textfeld gefunden. Erst ins Feld klicken, dann " + INSERT_KEY);
   };
 
   // ⌃V: fertige Antwort einfügen; läuft sie noch, wird nach Abschluss eingefügt.

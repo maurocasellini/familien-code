@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Eckblick AI",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Claude im Browser: Text markieren, ⌃C fragt die KI, ⌃V fügt die Antwort ein. Ecke unten links zeigt das Panel.",
   "icons": {
     "16": "icons/16.png",

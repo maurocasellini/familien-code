@@ -5,7 +5,7 @@ Browser-Erweiterung (Chrome, Edge, Brave, Arc – alle Chromium-Browser). Die KI
 | Aktion | Was passiert |
 |---|---|
 | **Text markieren + ⌃C** (Control, nicht ⌘) | Frage geht still im Hintergrund an die KI, kein Fenster springt auf. Das Icon zeigt „…“ solange sie arbeitet und ✓ wenn die Antwort fertig ist (rotes ! bei Fehlern, Details im Panel). Funktioniert auch in Eingabefeldern und iframes. |
-| **⌃V** | Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, wird sie eingefügt, sobald sie fertig ist. Ist kein Textfeld aktiv, landet sie in der Zwischenablage. |
+| **⌃V** | Antwort wird dort eingefügt, wo der Cursor steht. Läuft sie noch, wird sie eingefügt, sobald sie fertig ist. Ist kein Textfeld aktiv, passiert nichts (grauer ? am Icon). Die Zwischenablage wird nie automatisch verändert. |
 | **⌃ gedrückt halten + Maus in die Ecke unten links** | Dezentes Panel mit der Antwort, Quellen und Folgefragen. Maus weg → es verschwindet. Sonst öffnet es sich nie, auch nicht bei Fehlern (dann rotes ! am Icon). |
 | ⌘C / ⌘V | bleiben ganz normal. |
 | <kbd>Esc</kbd> | Antwort stoppen bzw. Panel schließen |
@@ -34,7 +34,6 @@ Alternativ einzelne Dateien hochladen: **PDF, PPTX, DOCX, TXT, MD, CSV**. Jede n
 ## Einstellungen
 
 - **Modell:** Claude Opus 5.5 (Standard, beste Qualität), Sonnet 5.5, Haiku 4.5 (am schnellsten/günstigsten).
-- **Antwort zusätzlich in die Zwischenablage** (Standard aus; praktisch zum Einfügen außerhalb des Browsers).
 - **Antwortsprache:** Deutsch (Deutschland, Standard) / wie die Frage / Englisch.
 - **Auslöser** (⌃C, ⌘C oder nur markieren), **Mindestlänge** der Markierung, **Websuche** (Standard aus), **Ecken-Verzögerung**.
 

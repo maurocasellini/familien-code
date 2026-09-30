@@ -10,7 +10,6 @@ const DEFAULTS = {
   trigger: "shortcut",
   webSearch: false,
   language: "de",
-  autoCopy: false,
   showPanel: false,
   minChars: 3,
   cornerDelay: 120,
@@ -277,6 +276,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.tabs.sendMessage(tabId, { type: "insert-text", text: msg.text }).catch(() => {});
   }
   if (msg?.type === "answer-ready" && tabId != null) showBadge(tabId);
+  if (msg?.type === "insert-failed" && tabId != null) setBadge(tabId, "?", "#80868b", 3000);
   if (msg?.type === "open-options") chrome.runtime.openOptionsPage();
   if (msg?.type === "test-key") {
     const client = new Anthropic({ apiKey: msg.apiKey, dangerouslyAllowBrowser: true });
@@ -322,6 +322,7 @@ async function injectIntoOpenTabs() {
 
 chrome.runtime.onInstalled.addListener(async ({ reason }) => {
   injectIntoOpenTabs();
+  chrome.storage.local.remove("autoCopy"); // automatisches Kopieren gibt es nicht mehr
   const { apiKey } = await chrome.storage.local.get("apiKey");
   if (reason === "install" && !apiKey) chrome.runtime.openOptionsPage();
 });
