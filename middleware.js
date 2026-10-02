@@ -3,8 +3,9 @@
 // In Production: nur durchlassen mit korrekten Credentials aus Env.
 
 export const config = {
-  // Schuetzt alles AUSSER Next-internal Pfade
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Schuetzt alles AUSSER Next-internal Pfade und der Kinder-App /loewenherz
+  // (rein statisch, keine Daten; muss ohne Passwort offline-installierbar sein)
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|loewenherz).*)'],
 };
 
 export function middleware(request) {

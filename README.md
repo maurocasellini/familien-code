@@ -28,3 +28,16 @@ App läuft auf http://localhost:3000
    - Key: `ANTHROPIC_API_KEY`
    - Value: dein Anthropic API Key (`sk-ant-...`)
 4. Deploy klicken — fertig.
+
+## Löwenherz – Kinder-App (Selbstvertrauen & Sprechen)
+
+Statische Offline-App unter `public/loewenherz/` (kein Build, kein Server-Code).
+Nach dem Deploy erreichbar unter `/loewenherz` (ohne Passwort-Schutz).
+
+- **Mut-Welt:** Mut-Missionen, Löwen-Brüller, Gefühle-Wetter, Erzähl-Würfel, Kraft tanken, Stolz-Glas
+- **Sprech-Dschungel:** Laut-Training K/T/S/SCH in 6 Stufen, Ohren-Detektiv (Tasse/Tasche), Zungen-Turnen
+- **Eltern-Ecke** (Rechenaufgabe als Sperre): Name, Fortschritt, Tipps
+
+Aufs Handy: iPhone → Safari → Teilen → «Zum Home-Bildschirm». Android → Chrome → «App installieren».
+Einmal online öffnen, danach läuft alles offline. Daten bleiben nur auf dem Gerät.
+Bei Änderungen an der App `VERSION` in `public/loewenherz/sw.js` hochzählen.

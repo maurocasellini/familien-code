@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: false,
 
+  // Kinder-App (public/loewenherz): kurze URL auf die echte Datei umleiten,
+  // damit relative Pfade (sw.js, manifest, fonts) stimmen.
+  async redirects() {
+    return [
+      { source: '/loewenherz', destination: '/loewenherz/index.html', permanent: false },
+    ];
+  },
+
   experimental: {
     // App-Router-Pfad (schadet nicht, hilft falls je genutzt).
     serverComponentsExternalPackages: ['swisseph-wasm'],
